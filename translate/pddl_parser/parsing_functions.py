@@ -4,10 +4,21 @@ from __future__ import print_function
 
 import sys
 
-import graph
-import pddl
+# import graph
+from .. import pddl
 
 DEBUG = False
+
+def transitive_closure(pairs):
+    # Warshall's algorithm.
+    result = set(pairs)
+    nodes = set(u for (u, v) in pairs) | set(v for (u, v) in pairs)
+    for k in nodes:
+        for i in nodes:
+            for j in nodes:
+                if (i, j) not in result and (i, k) in result and (k, j) in result:
+                    result.add((i, j))
+    return sorted(result)
 
 def parse_typed_list(alist, only_variables=False,
                      constructor=pddl.TypedObject,
@@ -44,7 +55,7 @@ def set_supertypes(type_list):
         type_name_to_type[pddltype.name] = pddltype
         if pddltype.basetype_name:
             child_types.append((pddltype.name, pddltype.basetype_name))
-    for (desc_name, anc_name) in graph.transitive_closure(child_types):
+    for (desc_name, anc_name) in transitive_closure(child_types):
         type_name_to_type[desc_name].supertype_names.append(anc_name)
 
 
