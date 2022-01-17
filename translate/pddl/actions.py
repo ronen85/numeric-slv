@@ -4,7 +4,7 @@ import copy
 
 from . import conditions
 from . import effects
-from effects import NumericEffect
+# from effects import NumericEffect
 from . import pddl_types
 from . import f_expression
 
@@ -23,7 +23,7 @@ class Action(object):
         self.num_external_parameters = num_external_parameters
         self.precondition = precondition
         self.effects = effects
-        assert(isinstance(cost, NumericEffect))
+        assert(isinstance(cost, effects.NumericEffect))
         self.cost = cost # cost is an effects.NumericEffect increase effect of fluent total-cost  
         self.uniquify_variables() # TODO: uniquify variables in cost?
     def __repr__(self):
