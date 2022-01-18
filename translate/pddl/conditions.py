@@ -365,7 +365,8 @@ class FunctionComparison(Condition): # NFD class yielding the truth value of a f
         result.append(self.__class__(self.comparator,instantiated_parts))
     def positive(self):
         return self
-        
+    def __hash__(self):
+        return hash(self.__str__())
     
 class NegatedFunctionComparison(FunctionComparison): # NFD
     negated = True

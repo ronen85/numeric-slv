@@ -64,6 +64,8 @@ class ArithmeticExpression(FunctionalExpression):
                                for part in self.parts])
     def change_parts(self, parts):
         return self.__class__(parts)
+    def __hash__(self):
+        return hash(self.__str__())
 #    def remove_duration_variable(self, action, time, duration, pnes):
 #        return self.__class__([part.remove_duration_variable(action, time, duration, pnes)
 #                               for part in self.parts])
@@ -145,6 +147,8 @@ class NumericConstant(FunctionalExpression):
     def instantiate(self, var_mapping, fluent_functions, 
                         init_function_vals, task, new_axioms=[]):
         return self
+    def __hash__(self):
+        return hash((self.__class__, self.parts, self.value))
 
 class PrimitiveNumericExpression(FunctionalExpression):
     parts = ()
