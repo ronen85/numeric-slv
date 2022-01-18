@@ -11,7 +11,7 @@ from . import f_expression
 
 class Action(object):
     def __init__(self, name, parameters, num_external_parameters,
-                 precondition, effects, cost):
+                 precondition, _effects, cost):
         assert 0 <= num_external_parameters <= len(parameters)
         self.name = name
         self.parameters = parameters
@@ -22,7 +22,7 @@ class Action(object):
         # quantifiers in conditions.
         self.num_external_parameters = num_external_parameters
         self.precondition = precondition
-        self.effects = effects
+        self.effects = _effects
         assert(isinstance(cost, effects.NumericEffect))
         self.cost = cost # cost is an effects.NumericEffect increase effect of fluent total-cost  
         self.uniquify_variables() # TODO: uniquify variables in cost?
