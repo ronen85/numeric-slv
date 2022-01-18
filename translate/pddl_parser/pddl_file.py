@@ -1,9 +1,9 @@
-try:
-    # Python 3.x
-    from builtins import open as file_open
-except ImportError:
-    # Python 2.x
-    from codecs import open as file_open
+# try:
+#     # Python 3.x
+#     from builtins import open as file_open
+# except ImportError:
+#     # Python 2.x
+#     from codecs import open as file_open
 
 
 from . import lisp_parser
@@ -17,7 +17,7 @@ def parse_pddl_file(type, filename):
         # Latin-* encodings and of UTF-8) to allow special characters in
         # comments. In all other parts, we later validate that only ASCII is
         # used.
-        return lisp_parser.parse_nested_list(file_open(filename,
+        return lisp_parser.parse_nested_list(open(filename,
                                                        encoding='ISO-8859-1'))
     except IOError as e:
         raise SystemExit("Error: Could not read file: %s\nReason: %s." %
@@ -26,7 +26,7 @@ def parse_pddl_file(type, filename):
         raise SystemExit("Error: Could not parse %s file: %s\nReason: %s." %
                          (type, filename, e))
 
-def open(domain_filename=None, task_filename=None):
+def open_pddl(domain_filename=None, task_filename=None):
     task_filename = task_filename
     domain_filename = domain_filename
 
