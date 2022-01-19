@@ -1,4 +1,4 @@
-#from .pddl_file import open
+#from .pddl_file import open_pddl
 #from .parser import ParseError
 
 from .pddl_types import Type
