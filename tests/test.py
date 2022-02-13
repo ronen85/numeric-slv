@@ -27,7 +27,7 @@ class TestUTILS(unittest.TestCase):
 class TestSocialPlanningProblem(unittest.TestCase):
 
     def test_arithmetic_expression_to_sym(self):
-        from numeric_slv.problem import arithmetic_expression_to_sym
+        from numeric_slv.zeta_compilation import arithmetic_expression_to_sym
         from translate.pddl import Difference, PrimitiveNumericExpression, NumericConstant, Sum, Product, \
             FunctionComparison
         # load_limit(truck0) - 5
@@ -44,7 +44,7 @@ class TestSocialPlanningProblem(unittest.TestCase):
         self.assertEqual('2.0*PNE load_limit(truck0) - 10.0', str(sym_exp_3))
 
     def test_convert_numerical_expressions_to_normal_form_of_function_comparison(self):
-        from numeric_slv.problem import convert_numerical_expressions_to_normal_form_of_function_comparison
+        from numeric_slv.zeta_compilation import convert_numerical_expressions_to_normal_form_of_function_comparison
         from translate.pddl import FunctionComparison, Difference, PrimitiveNumericExpression, NumericConstant, Product, \
             Sum
         # load_limit(truck0) - 5 >= 10

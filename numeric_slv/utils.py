@@ -19,3 +19,10 @@ def get_sas_translation(domain, problem):
     with sas_file.open('r') as f:
         sas_as_list = [l for l in f]
     return sas_as_list
+
+def replace_punctuation(s, replace=' '):
+    """
+    replaces punctuation (/*-+...) with 'replace'
+    """
+    chars = re.escape(string.punctuation)
+    return re.sub(r'[' + chars + ']', replace, s)
