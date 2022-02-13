@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from .problem import Predicate, Function
+from .problem import SocialPredicate, SocialVariable
 
 
 def parse_task(task):
@@ -19,7 +19,7 @@ def parse_preds_from_task(task):
         p = deepcopy(p)
         name = p.name
         arguments = p.arguments
-        preds.append(Predicate(name, arguments))
+        preds.append(SocialPredicate(name, arguments))
     return preds
 
 
@@ -29,5 +29,5 @@ def parse_funcs_from_task(task):
         f = deepcopy(f)
         name = f.name
         arguments = f.arguments
-        funcs.append(Function(name, arguments))
+        funcs.append(SocialVariable(name, arguments))
     return funcs
