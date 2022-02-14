@@ -42,8 +42,6 @@ def get_simplified_grounded_task(domain_filename, prob_filename):
     task_with_grounded_constants = get_task_with_grounded_constants(grounded_task)
     modified_grounded_task = convert_numerical_expressions_to_normal_form(task_with_grounded_constants)
     modified_grounded_task = replace_complex_numerical_expressions_with_zeta_variables(modified_grounded_task)
-    domain = get_pddl_domain(modified_grounded_task)
-    prob = get_pddl_prob(modified_grounded_task)
     return modified_grounded_task
 
 
@@ -52,6 +50,10 @@ class SocialPlanningProblem:
 
     def __init__(self, domain_filename, prob_filename):
         self.domain_filename, self.prob_filename = domain_filename, prob_filename
-        self.simplify_grounded_task = get_simplified_grounded_task(domain_filename, prob_filename)
-        print()
+        self.task = pddl_parser.open_pddl(domain_filename, prob_filename)
+        # self.task_with_grounded_actions = get_grounded_task(domain_filename, prob_filename)
+        # self.task_with_grounded_actions_constants = get_task_with_grounded_constants(self.task_with_grounded_actions)
+        # self.task_with_grounded_actions_constants_normal_form = convert_numerical_expressions_to_normal_form(self.task_with_grounded_actions_constants)
+        # self.final_grounded_task = replace_complex_numerical_expressions_with_zeta_variables(self.task_with_grounded_actions_constants_normal_form)
+        self.final_grounded_task = get_simplified_grounded_task(domain_filename, prob_filename)
 
