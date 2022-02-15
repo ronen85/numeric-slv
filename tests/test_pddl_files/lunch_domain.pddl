@@ -1,30 +1,30 @@
 (define (domain lunch)
     (:requirements :typing :fluents)
 
-(:types edible person - object)
+(:types edible agent - object)
 
 (:predicates 
     (ready ?e - edible)
-    (hungry ?p - person)
-    (satisfied ?p - person)
+    (hungry ?p - agent)
+    (satisfied ?p - agent)
 )
 
 (:functions 
     (fats_in ?e - edible)
     (carbs_in ?e - edible)
     (protein_in ?e - edible)
-    (fats_got ?p - person)
-    (carbs_got ?p - person)
-    (protein_got ?p - person)
-    (fats_need ?p - person)
-    (carbs_need ?p - person)
-    (protein_need ?p - person)
-    (calorie_need ?p - person)
+    (fats_got ?p - agent)
+    (carbs_got ?p - agent)
+    (protein_got ?p - agent)
+    (fats_need ?p - agent)
+    (carbs_need ?p - agent)
+    (protein_need ?p - agent)
+    (calorie_need ?p - agent)
 )
 
 
 (:action eat 
-:parameters (?p - person ?e - edible)
+:parameters (?p - agent ?e - edible)
 :precondition (and (ready ?e))
 :effect (and 
     (not (ready ?e))
@@ -35,7 +35,7 @@
 )
 
 (:action finish 
-:parameters (?p - person)
+:parameters (?p - agent)
 :precondition (and 
     (hungry ?p) 
     (>= (fats_got ?p) 

@@ -1,0 +1,20 @@
+[
+  {
+    "action": "eat",
+    "agent": "ronen",
+    "type": "predicate",
+    "symbol_name": "ready"
+  },
+  {
+    "action": "eat",
+    "agent": "alex",
+    "type": "predicate",
+    "symbol_name": "ready"
+  },
+  {
+    "action": "eat",
+    "agent": "alex",
+    "type": "predicate",
+    "symbol_name": "ready"
+  }
+]

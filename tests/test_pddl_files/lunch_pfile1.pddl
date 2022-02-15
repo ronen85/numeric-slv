@@ -1,6 +1,7 @@
 (define (problem lunch_p1) (:domain lunch)
 (:objects 
-ronen - person 
+ronen - agent
+alex - agent
 pizza - edible
 )
 
