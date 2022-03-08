@@ -10,7 +10,7 @@ from numeric_slv import utils
 from translate.pddl import Action, Atom, FunctionComparison, Effect, NegatedAtom, Increase, Decrease, \
     Conjunction, PrimitiveNumericExpression, NumericConstant, Task, FunctionAssignment, NumericEffect, Literal, \
     ArithmeticExpression, Sum, Product, Predicate, Function, conditions, TypedObject, Assign
-from .ground_task import get_grounded_task
+from .ground_task import get_grounded_task, get_grounded_task_with_sas
 from .remove_constants import get_constants_from_grounded_task, replace_pne_with_numeric_constants, \
     get_task_with_grounded_constants
 
@@ -38,6 +38,7 @@ def get_numerical_preconditions_from_action(action: Action):
 
 
 def get_simplified_grounded_task(domain_filename, prob_filename):
+    # grounded_task = get_grounded_task_with_sas(domain_filename, prob_filename)
     grounded_task = get_grounded_task(domain_filename, prob_filename)
     task_with_grounded_constants = get_task_with_grounded_constants(grounded_task)
     modified_grounded_task = convert_numerical_expressions_to_normal_form(task_with_grounded_constants)

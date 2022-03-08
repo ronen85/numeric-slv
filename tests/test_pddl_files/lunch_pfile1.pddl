@@ -1,9 +1,7 @@
-(define (problem lunch_p1) (:domain lunch)
-(:objects 
-ronen - agent
-alex - agent
-pizza - edible
-)
+(define (problem lunch_p1) 
+(:domain lunch)
+(:objects ronen alex - agent
+          pizza - edible)
 
 (:init
     (hungry ronen)
@@ -18,11 +16,18 @@ pizza - edible
     (= (carbs_need ronen) 1)
     (= (protein_need ronen) 1)
     (= (calorie_need ronen) 1)
+    (= (fats_got alex) 0)
+    (= (carbs_got alex) 0)
+    (= (protein_got alex) 0)
+    (= (fats_need alex) 1)
+    (= (carbs_need alex) 1)
+    (= (protein_need alex) 1)
+    (= (calorie_need alex) 1)
+    (= (cost) 0)
 )
 
-(:goal (and
-    (satisfied ronen)
-))
+(:goal(satisfied ronen) )
 
+(:metric minimize (cost))
 
 )

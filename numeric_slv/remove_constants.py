@@ -32,7 +32,10 @@ def replace_pne_with_numeric_constants(obj, constants_dict):
     """
     if isinstance(obj, Task):
         modified_task = deepcopy(obj)
+        modified_task.num_init = [a for a in modified_task.num_init if not(a.fluent in constants_dict.keys())]
         modified_task.actions = [replace_pne_with_numeric_constants(a, constants_dict) for a in modified_task.actions]
+        symbol_list = [a.fluent.symbol for a in modified_task.num_init]
+        modified_task.functions = [f for f in modified_task.functions if f.name in symbol_list]
         return modified_task
     elif isinstance(obj, Action):
         modified_action = deepcopy(obj)

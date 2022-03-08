@@ -1,20 +1,18 @@
-[
-  {
-    "action": "eat",
-    "agent": "ronen",
-    "type": "predicate",
-    "symbol_name": "ready"
-  },
-  {
-    "action": "eat",
-    "agent": "alex",
-    "type": "predicate",
-    "symbol_name": "ready"
-  },
-  {
-    "action": "eat",
-    "agent": "alex",
-    "type": "predicate",
-    "symbol_name": "ready"
-  }
-]
+{
+  "waitfor": [
+    {
+      "action_name": "eat",
+      "action_args": ["*", "*"],
+      "predicate_name": "ready",
+      "predicate_args": ["*"]
+    }
+  ],
+  "num_waitfor": [
+    {
+      "action_name": "finish",
+      "action_args": ["*"],
+      "fluent_name": "protein_got",
+      "fluent_args": ["*"]
+    }
+  ]
+}
