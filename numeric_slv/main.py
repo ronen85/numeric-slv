@@ -722,14 +722,15 @@ class Compilation:
         #     Predicate(name='wt_' + , arguments=[])
 
     def sanity_check(self):
-        # sanity check
-        # 1. there's an "agent" type
-        # 2. actions in self.spp.final_grounded_task are grounded TODO
-        # 3. first argument in any action is an agent
-        # 4. actions precondition is either Atom or Conjunction
-        # 5. actions numerical conditions have normal form
-        # 6. waitfor conditions are of the form v >= 0
         assert 'agent' in [t.name for t in self.spp.task.types], "expected one 'agent' type"
+        for a in self.spp.final_grounded_task.actions:
+            assert a.parameters == [], f"expected grounded action, got a.parameters = {a.parameters}"
+        for a in self.spp.task.actions:
+            assert a.parameters[0].type_name == 'agent', \
+                f"expected first argument in each action to be 'agent', got: {a.parameters[0].type_name}"
+        for a in self.spp.final_grounded_task.actions:
+            assert isinstance(a.precondition, Atom) or isinstance(a.precondition, Conjunction), \
+                f"expected actions precondition is either Atom or Conjunction, got: {a.precondition}"
 
     def get_action_df(self):
         action_name_list = []
@@ -747,7 +748,7 @@ class Compilation:
 
 def main(domain_file, problem_file, waitfor_file=''):
     spp = SocialPlanningProblem(domain_file, problem_file)
-    compiled_spp = Compilation(spp, waitfor_file=waitfor_file)
+    compilation = Compilation(spp, waitfor_file=waitfor_file)
     print()
 
 
