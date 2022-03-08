@@ -91,10 +91,6 @@ class TestSocialPlanningProblem(unittest.TestCase):
         expected_eq_4 = FunctionComparison('>=', [Sum([y, Sum([z, Product([NumericConstant(-1.), x])])]), NumericConstant(0.)])
         self.assertEqual(simplified_eq_4, expected_eq_4)
 
-    def test_init(self):
-        domain_file = os.path.join(test_pddl_files_dir, 'lunch_domain.pddl')
-        problem_file = os.path.join(test_pddl_files_dir, 'lunch_pfile1.pddl')
-        spp = numeric_slv.SocialPlanningProblem(domain_file, problem_file)
 
 
 if __name__ == '__main__':

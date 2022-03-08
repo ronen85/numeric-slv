@@ -3,8 +3,9 @@ import json
 import pandas as pd
 from copy import deepcopy
 
-from numeric_slv import SocialPlanningProblem
+from numeric_slv.problem import get_simplified_grounded_task
 from numeric_slv.zeta_compilation import is_function_comparison_simple
+from translate import pddl_parser
 from translate.pddl import Predicate, Atom, Conjunction, NegatedAtom, FunctionComparison, PrimitiveNumericExpression, \
     Action, Literal, Effect, NumericConstant, Function, Assign, Increase, Decrease, Disjunction, Task
 
@@ -246,8 +247,10 @@ def get_num_eff_from_action(action):
 
 class Compilation:
 
-    def __init__(self, spp, waitfor_file=''):
-        self.spp = deepcopy(spp)
+    def __init__(self, domain_filename, prob_filename, waitfor_file=''):
+        self.domain_filename, self.prob_filename = domain_filename, prob_filename
+        self.task = pddl_parser.open_pddl(domain_filename, prob_filename)
+        self.grounded_task = get_simplified_grounded_task(domain_filename, prob_filename)
         if waitfor_file:
             with open(waitfor_file, 'rb') as f:
                 json_file = json.load(f)
@@ -255,7 +258,6 @@ class Compilation:
                 self.num_waitfor = json_file.get('num_waitfor', dict())
         self.sanity_check()
         self.action_df = self.get_action_df()
-        self.agent_names_list = [o.name for o in self.spp.task.objects if o.type_name == 'agent']
         self.compiled_task = self.compile_spp()
 
     def compile_spp(self):
@@ -695,8 +697,8 @@ class Compilation:
 
             return A_s + A_p + A_n + A_wt_p + A_wt_n + A_wt
 
-        task = self.spp.task
-        grounded_task = self.spp.final_grounded_task
+        task = self.task
+        grounded_task = self.grounded_task
         agents = [o for o in task.objects if o.type_name == 'agent']
         all_pre_n_w = []
         for action in grounded_task.actions:
@@ -721,13 +723,13 @@ class Compilation:
         #     Predicate(name='wt_' + , arguments=[])
 
     def sanity_check(self):
-        assert 'agent' in [t.name for t in self.spp.task.types], "expected one 'agent' type"
-        for a in self.spp.final_grounded_task.actions:
+        assert 'agent' in [t.name for t in self.task.types], "expected one 'agent' type"
+        for a in self.grounded_task.actions:
             assert a.parameters == [], f"expected grounded action, got a.parameters = {a.parameters}"
-        for a in self.spp.task.actions:
+        for a in self.task.actions:
             assert a.parameters[0].type_name == 'agent', \
                 f"expected first argument in each action to be 'agent', got: {a.parameters[0].type_name}"
-        for a in self.spp.final_grounded_task.actions:
+        for a in self.grounded_task.actions:
             assert isinstance(a.precondition, Atom) or isinstance(a.precondition, Conjunction), \
                 f"expected actions precondition is either Atom or Conjunction, got: {a.precondition}"
 
@@ -736,7 +738,7 @@ class Compilation:
         action_agent_list = []
         action_args_list = []
 
-        for action in self.spp.final_grounded_task.actions:
+        for action in self.grounded_task.actions:
             action_name_list.append(action.name.split('_')[0])
             action_agent_list.append(action.name.split('_')[1])
             action_args_list.append(action.name.split('_')[1:])
@@ -746,8 +748,10 @@ class Compilation:
 
 
 def main(domain_file, problem_file, waitfor_file=''):
-    spp = SocialPlanningProblem(domain_file, problem_file)
-    compilation = Compilation(spp, waitfor_file=waitfor_file)
+    """
+    parse domain and problem to
+    """
+    compilation = Compilation(domain_file, problem_file, waitfor_file=waitfor_file)
     print()
 
 
