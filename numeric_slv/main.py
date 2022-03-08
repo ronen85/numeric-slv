@@ -257,7 +257,6 @@ class Compilation:
         self.action_df = self.get_action_df()
         self.agent_names_list = [o.name for o in self.spp.task.objects if o.type_name == 'agent']
         self.compiled_task = self.compile_spp()
-        print()
 
     def compile_spp(self):
         """
@@ -756,6 +755,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("domain-file", type=str, help="path to domain file")
     parser.add_argument("problem-file", type=str, help="path to problem file")
+    parser.add_argument("waitfor-file", type=str, help="path to waitfor file")
     args = parser.parse_args()
-    main(domain_file=args.domain_file,
-         problem_file=args.problem_file)
+    main(domain_file=args.domain_file, problem_file=args.problem_file, waitfor_file=args.waitfor_file)
