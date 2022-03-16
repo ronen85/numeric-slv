@@ -1,14 +1,20 @@
 import argparse
 import json
+from pathlib import Path
+
 import pandas as pd
 from copy import deepcopy
 
 from numeric_slv.problem import get_simplified_grounded_task
+from numeric_slv.task_to_pddl import get_pddl_domain, get_pddl_prob
 from numeric_slv.zeta_compilation import is_function_comparison_simple
 from translate import pddl_parser
 from translate.pddl import Predicate, Atom, Conjunction, NegatedAtom, FunctionComparison, PrimitiveNumericExpression, \
-    Action, Literal, Effect, NumericConstant, Function, Assign, Increase, Decrease, Disjunction, Task
+    Action, Literal, Effect, NumericConstant, Function, Assign, Increase, Decrease, Disjunction, Task, Truth, \
+    NumericEffect
 
+def get_action_cost(cost=1.0):
+    return NumericEffect(Increase(PrimitiveNumericExpression('total-cost', tuple()), NumericConstant(cost)))
 
 def str_eq(arg1, arg2):
     return arg1 == arg2 or '*' in [arg1, arg2]
@@ -169,7 +175,7 @@ def get_wt_f_predicate(obj):
 
 def get_wt_f_atom(obj):
     pred = get_wt_f_predicate(obj)
-    return Atom(predicate=pred.name, args=[])
+    return predicate_to_atom(pred)
 
 
 def get_add_from_action(action):
@@ -239,6 +245,8 @@ def get_num_eff_from_action(action):
         if isinstance(eff.peffect, Atom) or isinstance(eff.peffect, NegatedAtom):
             continue
         elif isinstance(eff.peffect, Increase) or isinstance(eff.peffect, Decrease):
+            if eff.peffect.fluent.symbol == 'total-cost':
+                continue
             num_eff.append(eff)
         else:
             raise NotImplemented
@@ -247,15 +255,16 @@ def get_num_eff_from_action(action):
 
 class Compilation:
 
-    def __init__(self, domain_filename, prob_filename, waitfor_file=''):
+    def __init__(self, domain_filename, prob_filename, info_file=''):
         self.domain_filename, self.prob_filename = domain_filename, prob_filename
         self.task = pddl_parser.open_pddl(domain_filename, prob_filename)
         self.grounded_task = get_simplified_grounded_task(domain_filename, prob_filename)
-        if waitfor_file:
-            with open(waitfor_file, 'rb') as f:
+        if info_file:
+            with open(info_file, 'rb') as f:
                 json_file = json.load(f)
                 self.waitfor = json_file.get('waitfor', dict())
                 self.num_waitfor = json_file.get('num_waitfor', dict())
+                self.goal_affiliation = json_file.get('goal_affiliation', [])
         self.sanity_check()
         self.action_df = self.get_action_df()
         self.compiled_task = self.compile_spp()
@@ -306,19 +315,23 @@ class Compilation:
             for a in agents:
                 fin_i_list.append(get_fin_predicate(a.name))
             # F
-            F = f_g_list + f_i_list + waiting_i_list + wt_f_list + wt_v_w_list + fin_i_list + [act_predicate,
-                                                                                               failure_predicate]
+            F = f_g_list + f_i_list + waiting_i_list + wt_f_list + wt_v_w_list + fin_i_list + \
+                [act_predicate, failure_predicate]
             return F
 
         def get_V():
             # v_g
             v_g_list = []
             for v in grounded_task.functions:
+                if v.name == 'total-cost':
+                    continue
                 v_g_list.append(get_global_copy(v))
             # v_i
             v_i_list = []
             for a in agents:
                 for v in grounded_task.functions:
+                    if v.name == 'total-cost':
+                        continue
                     v_i_list.append(get_local_copy(v, a.name))
             V = v_g_list + v_i_list
             return V
@@ -326,17 +339,21 @@ class Compilation:
         def get_I_p():
             # I_p
             # act
-            act_predicate = get_act_predicate()
+            act = get_act_atom()
             # f_g
             init_g_list = []
             for i in grounded_task.init:
+                if i.predicate == '=':
+                    continue
                 init_g_list.append(get_global_copy(i))
             # f_i
             init_i_list = []
             for a in agents:
                 for pred in grounded_task.init:
+                    if pred.predicate == '=':
+                        continue
                     init_i_list.append(get_local_copy(pred, a.name))
-            I_p = [act_predicate] + init_g_list + init_i_list
+            I_p = [act] + init_g_list + init_i_list
             return I_p
 
         def get_I_v():
@@ -378,8 +395,11 @@ class Compilation:
             # not wt.f for f in add(a)
             add_list = get_add_from_action(action)
             for eff in add_list:
-                wt_atom = get_wt_f_atom(eff.peffect)
-                pre_p.append(wt_atom.negate())
+                if eff.peffect in all_pre_p_w:
+                    wt_atom = get_wt_f_atom(eff.peffect)
+                    pre_p.append(wt_atom.negate())
+                else:
+                    continue
             # pre_n
             pre_n = []
             # v_i >= w \and v_g >= w for all v,w in pre_n(a)
@@ -421,7 +441,7 @@ class Compilation:
                 num_list.append(get_local_copy(num_eff, agent_name))
                 num_list.append(get_global_copy(num_eff))
             # Action
-            action_s = Action(name=action.name + f'_s_{agent_name}', parameters=action.parameters,
+            action_s = Action(name=action.name + f'_s', parameters=action.parameters,
                               num_external_parameters=action.num_external_parameters, precondition=pre,
                               _effects=add_list + del_list + num_list, cost=action.cost)
             return action_s
@@ -446,7 +466,12 @@ class Compilation:
             not_f_g = []
             for pre in list(set(a_pre_p) - set(a_pre_w_p)):
                 not_f_g.append(get_global_copy(pre).negate())
-            pre_p.append(Disjunction(not_f_g))
+            if len(not_f_g) > 1:
+                pre_p.append(Disjunction(not_f_g))
+            elif len(not_f_g) == 1:
+                pre_p.append(not_f_g[0])
+            else:
+                raise ValueError("expected more than one disjunction item")
             # pre_n
             pre_n = []
             # v_i >= w for all v,w in pre_n(a)
@@ -464,7 +489,7 @@ class Compilation:
             add_list = []
             for eff in get_add_from_action(action):
                 add_list.append(get_local_copy(eff, agent_name))
-            add_list.append(get_failure_atom())
+            add_list.append(Effect([], Truth(), get_failure_atom()))
             # del
             del_list = []
             for eff in get_del_from_action(action):
@@ -474,7 +499,7 @@ class Compilation:
             for num_eff in get_num_eff_from_action(action):
                 num_list.append(get_local_copy(num_eff, agent_name))
             # Action
-            action_p = Action(name=action.name + f'_p_{agent_name}', parameters=action.parameters,
+            action_p = Action(name=action.name + f'_pf', parameters=action.parameters,
                               num_external_parameters=action.num_external_parameters, precondition=pre,
                               _effects=add_list + del_list + num_list, cost=action.cost)
             return action_p
@@ -513,13 +538,18 @@ class Compilation:
                 v_g = get_global_copy(func.parts[0])
                 w = func.parts[1]
                 v_g_smaller_w.append(FunctionComparison('<', [v_g, w]))
-            pre_n.append(Disjunction(v_g_smaller_w))
+            if len(v_g_smaller_w) == 1:
+                pre_n.append(v_g_smaller_w[0])
+            elif len(v_g_smaller_w) > 1:
+                pre_n.append(Disjunction(v_g_smaller_w))
+            else:
+                raise ValueError("expected a >=1 value")
             pre = Conjunction(pre_p + pre_n)
             # add
             add_list = []
             for eff in get_add_from_action(action):
                 add_list.append(get_local_copy(eff, agent_name))
-            add_list.append(get_failure_atom())
+            add_list.append(Effect([], Truth(), get_failure_atom()))
             # del
             del_list = []
             for eff in get_del_from_action(action):
@@ -529,7 +559,7 @@ class Compilation:
             for num_eff in get_num_eff_from_action(action):
                 num_list.append(get_local_copy(num_eff, agent_name))
             # Action
-            action_n = Action(name=action.name + f'_n_{agent_name}', parameters=action.parameters,
+            action_n = Action(name=action.name + f'_nf', parameters=action.parameters,
                               num_external_parameters=action.num_external_parameters, precondition=pre,
                               _effects=add_list + del_list + num_list, cost=action.cost)
             return action_n
@@ -560,9 +590,9 @@ class Compilation:
             add_list = []
             for eff in get_add_from_action(action):
                 add_list.append(get_local_copy(eff, agent_name))
-            add_list.append(get_failure_atom())
-            add_list.append(get_waiting_atom(agent_name))
-            add_list.append(get_wt_f_atom(x))
+            add_list.append(Effect([], Truth(), get_failure_atom()))
+            add_list.append(Effect([], Truth(), get_waiting_atom(agent_name)))
+            add_list.append(Effect([], Truth(), get_wt_f_atom(x)))
             # del
             del_list = []
             for eff in get_del_from_action(action):
@@ -572,7 +602,7 @@ class Compilation:
             for num_eff in get_num_eff_from_action(action):
                 num_list.append(get_local_copy(num_eff, agent_name))
             # Action
-            action_wt_p = Action(name=action.name + f'_wt_{x_name}_{agent_name}', parameters=action.parameters,
+            action_wt_p = Action(name=action.name + f'_wt_{x_name}', parameters=action.parameters,
                                  num_external_parameters=action.num_external_parameters, precondition=pre,
                                  _effects=add_list + del_list + num_list, cost=action.cost)
             return action_wt_p
@@ -605,9 +635,9 @@ class Compilation:
             add_list = []
             for eff in get_add_from_action(action):
                 add_list.append(get_local_copy(eff, agent_name))
-            add_list.append(get_failure_atom())
-            add_list.append(get_waiting_atom(agent_name))
-            add_list.append(get_wt_v_w_atom(x))
+            add_list.append(Effect([], Truth(), get_failure_atom()))
+            add_list.append(Effect([], Truth(), get_waiting_atom(agent_name)))
+            add_list.append(Effect([], Truth(), get_wt_v_w_atom(x)))
             # del
             del_list = []
             for eff in get_del_from_action(action):
@@ -617,7 +647,7 @@ class Compilation:
             for num_eff in get_num_eff_from_action(action):
                 num_list.append(get_local_copy(num_eff, agent_name))
             # Action
-            action_wt_n = Action(name=action.name + f'_wt_{x_name}_{agent_name}', parameters=action.parameters,
+            action_wt_n = Action(name=action.name + f'_wt_{x_name}', parameters=action.parameters,
                                  num_external_parameters=action.num_external_parameters, precondition=pre,
                                  _effects=add_list + del_list + num_list, cost=action.cost)
             return action_wt_n
@@ -652,7 +682,7 @@ class Compilation:
             for num_eff in get_num_eff_from_action(action):
                 num_list.append(get_local_copy(num_eff, agent_name))
             # Action
-            action_wt = Action(name=action.name + f'_wt_{agent_name}', parameters=action.parameters,
+            action_wt = Action(name=action.name + f'_wt', parameters=action.parameters,
                                num_external_parameters=action.num_external_parameters, precondition=pre,
                                _effects=add_list + del_list + num_list, cost=action.cost)
             return action_wt
@@ -667,14 +697,20 @@ class Compilation:
             # A_p
             A_p = []
             for action in grounded_task.actions:
-                action_p = get_a_p(action)
-                A_p.append(action_p)
+                number_of_disjunction_predicates = len(set(get_pre_p_from_action(action))
+                                                       - set(get_pre_p_w_from_action(action, self.waitfor)))
+                if number_of_disjunction_predicates > 0:
+                    action_p = get_a_p(action)
+                    A_p.append(action_p)
 
             # A_n
             A_n = []
             for action in grounded_task.actions:
-                action_n = get_a_n(action)
-                A_n.append(action_n)
+                number_of_disjunction_predicates = len(set(get_pre_n_from_action(action)) -
+                                                       set(get_pre_n_w_from_action(action, self.num_waitfor)))
+                if number_of_disjunction_predicates > 0:
+                    action_n = get_a_n(action)
+                    A_n.append(action_n)
 
             # A_wt_p
             A_wt_p = []
@@ -694,8 +730,73 @@ class Compilation:
             A_wt = []
             for action in grounded_task.actions:
                 action_wt = get_a_wt(action)
+                A_wt.append(action_wt)
 
-            return A_s + A_p + A_n + A_wt_p + A_wt_n + A_wt
+            # END_s
+            end_s_list = []
+            for a in agents:
+                pre_parts = []
+                pre_parts.append(get_fin_atom(a.name).negate())
+                agent_goals = self.get_agent_goals(a.name)
+                for g in agent_goals:
+                    pre_parts.append(get_local_copy(g, a.name))
+                    pre_parts.append(get_global_copy(g))
+                add_effects = [Effect([], Truth(), get_fin_atom(a.name))]
+                del_effects = [Effect([], Truth(), get_act_atom().negate())]
+                # Action
+                end_s_list.append(Action(name=f'end_s_{a.name}', parameters=[], num_external_parameters=0,
+                                         precondition=Conjunction(pre_parts), _effects=add_effects+del_effects,
+                                         cost=get_action_cost()))
+            # END_f
+            end_fp_list = []
+            for a in agents:
+                pre_parts = []
+                pre_parts.append(get_fin_atom(a.name).negate())
+                agent_goals = self.get_agent_goals(a.name)
+                for g in agent_goals:
+                    pre_parts.append(get_local_copy(g, a.name))
+                global_disjunction_parts = []
+                for g in agent_goals:
+                    if isinstance(g, Atom):
+                        global_disjunction_parts.append(get_global_copy(g.negate()))
+                    elif isinstance(g, FunctionComparison):
+                        assert g.comparator == '>=', f"expected '>=' condition, got: {g.comparator}"
+                        negated_fc = get_global_copy(g)
+                        negated_fc.comparator = '<'
+                        global_disjunction_parts.append(negated_fc)
+                if len(global_disjunction_parts) == 0:
+                    continue
+                elif len(global_disjunction_parts) == 1:
+                    pre_parts.append(global_disjunction_parts[0])
+                else:
+                    global_disjunction = Disjunction(global_disjunction_parts)
+                    pre_parts.append(global_disjunction)
+                add_effects = [Effect([], Truth(), get_fin_atom(a.name)), Effect([], Truth(), get_failure_atom())]
+                del_effects = [Effect([], Truth(), get_act_atom().negate())]
+                # Action
+                end_fp_list.append(Action(name=f'end_f_{a.name}', parameters=[], num_external_parameters=0,
+                                          precondition=Conjunction(pre_parts), _effects=add_effects+del_effects,
+                                          cost=get_action_cost()))
+
+
+            # END_w
+            end_w_list = []
+            for a in agents:
+                pre_parts = []
+                pre_parts.append(get_fin_atom(a.name).negate())
+                pre_parts.append(get_waiting_atom(a.name))
+                agent_goals = self.get_agent_goals(a.name)
+                for g in agent_goals:
+                    pre_parts.append(get_local_copy(g, a.name))
+                add_effects = [Effect([], Truth(), get_fin_atom(a.name))]
+                del_effects = [Effect([], Truth(), get_act_atom().negate())]
+                # Action
+                end_w_list.append(Action(name=f'end_w_{a.name}', parameters=[], num_external_parameters=0,
+                                         precondition=Conjunction(pre_parts), _effects=add_effects+del_effects,
+                                         cost=get_action_cost()))
+
+
+            return A_s + A_p + A_n + A_wt_p + A_wt_n + A_wt + end_s_list + end_fp_list + end_w_list
 
         task = self.task
         grounded_task = self.grounded_task
@@ -703,13 +804,20 @@ class Compilation:
         all_pre_n_w = []
         for action in grounded_task.actions:
             all_pre_n_w.extend(get_pre_n_w_from_action(action, self.num_waitfor))
-
+        all_pre_p_w = []
+        for action in grounded_task.actions:
+            all_pre_p_w.extend(get_pre_p_w_from_action(action, self.waitfor))
         F = get_F()
         V = get_V()
         I_p = get_I_p()
         I_v = get_I_v()
         G = get_G()
         A = get_A()
+
+
+
+
+
         compiled_task = Task(domain_name=task.domain_name + '_compiled',
                              task_name=task.task_name + '_compiled',
                              requirements=task.requirements, types=task.types, objects=task.objects,
@@ -721,6 +829,19 @@ class Compilation:
         #     if waitfor_dict['type'] != 'predicate':
         #         continue
         #     Predicate(name='wt_' + , arguments=[])
+    def get_agent_goals(self, agent_name):
+        if isinstance(self.grounded_task.goal, Conjunction):
+            all_goals = self.grounded_task.goal.parts
+        elif isinstance(self.grounded_task.goal, Atom) or isinstance(self.grounded_task.goal, FunctionComparison):
+            all_goals = [self.grounded_task.goal]
+        else:
+            raise NotImplemented
+        agent_goals = []
+        for goal_affiliation, goal in zip(self.goal_affiliation, all_goals):
+            if goal_affiliation == agent_name:
+                agent_goals.append(goal)
+        return agent_goals
+
 
     def sanity_check(self):
         assert 'agent' in [t.name for t in self.task.types], "expected one 'agent' type"
@@ -732,6 +853,14 @@ class Compilation:
         for a in self.grounded_task.actions:
             assert isinstance(a.precondition, Atom) or isinstance(a.precondition, Conjunction), \
                 f"expected actions precondition is either Atom or Conjunction, got: {a.precondition}"
+        if isinstance(self.task.goal, Conjunction):
+            goal_length = len(self.task.goal.parts)
+        elif isinstance(self.task.goal, Atom):
+            goal_length = 1
+        else:
+            raise NotImplemented
+        assert goal_length == len(self.goal_affiliation), \
+            f"expected goal affiliation list with length = {goal_length}, got: {self.goal_affiliation}"
 
     def get_action_df(self):
         action_name_list = []
@@ -747,11 +876,26 @@ class Compilation:
                                            action_args=action_args_list))
 
 
-def main(domain_file, problem_file, waitfor_file=''):
+def task_to_pddl(task, path):
+    domain_pddl = get_pddl_domain(task)
+    prob_pddl = get_pddl_prob(task)
+    return domain_pddl, prob_pddl
+
+
+def main(domain_file, problem_file, info_file=''):
     """
-    parse domain and problem to
+
     """
-    compilation = Compilation(domain_file, problem_file, waitfor_file=waitfor_file)
+    compilation = Compilation(domain_file, problem_file, info_file=info_file)
+    compiled_task = compilation.compiled_task
+    domain_pddl, prob_pddl = task_to_pddl(compiled_task, path='')
+    compiled_domain_path = Path(domain_file).parent / f'{compiled_task.task_name}_domain.pddl'
+    compiled_prob_path = Path(domain_file).parent / f'{compiled_task.task_name}_prob.pddl'
+    with open(str(compiled_domain_path), 'w') as f:
+        f.write(domain_pddl)
+    with open(str(compiled_prob_path), 'w') as f:
+        f.write(prob_pddl)
+
     print()
 
 

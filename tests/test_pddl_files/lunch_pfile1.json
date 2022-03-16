@@ -14,5 +14,11 @@
       "fluent_name": "protein_got",
       "fluent_args": ["*"]
     }
-  ]
+  ],
+  "goal_affiliation":
+          [
+            "ronen",
+            "alex",
+            "ronen"
+          ]
 }

@@ -19,18 +19,18 @@
     (fats_need ?p - agent)
     (carbs_need ?p - agent)
     (protein_need ?p - agent)
-    (calorie_need ?p - agent)    
+    (calorie_need ?p - agent)
 )
 
 
 (:action eat 
 :parameters (?p - agent ?e - edible)
-:precondition (and (ready ?e) (hungry ?p) )
+:precondition (and (ready ?e))
 :effect (and 
     (not (ready ?e))
     (increase (fats_got ?p) (fats_in ?e))
     (increase (carbs_got ?p) (carbs_in ?e))
-    (increase (protein_got ?p) (protein_in ?e))    
+    (increase (protein_got ?p) (protein_in ?e))
 )
 )
 
@@ -38,13 +38,18 @@
 :parameters (?p - agent)
 :precondition (and 
     (hungry ?p) 
-    (>= (fats_got ?p) (fats_need ?p)) 
+    (>= (fats_got ?p) 
+    (fats_need ?p)) 
     (>= (protein_got ?p) (protein_need ?p)) 
     (>= (carbs_got ?p) (carbs_need ?p))     
-    (>= (+ (* (+ (carbs_got ?p) (protein_got ?p)) 4.0) (* (fats_got ?p) 8.0)) (calorie_need ?p))) 
+    ; (>= (+ (+ (* (fats_got ?p) 8.0) (* (protein_got ?p) 4.0)) (* (carbs_got ?p) 4.0)) (calorie_need ?p))    
+    (>= (+ (+ (* (fats_got ?p) 8.0) (* (protein_got ?p) 4.0)) 1.0) (calorie_need ?p))    
+    ; (>= (+ (* (fats_got ?p) 8.0) (* (protein_got ?p) 4.0) (* (carbs_got ?p) 4.0)) (calorie_need ?p)) 
+    ) 
 :effect (and 
     (not (hungry ?p))
-    (satisfied ?p))
+    (satisfied ?p)
+)
 )
 
 )

@@ -16,7 +16,7 @@ class TestMain(unittest.TestCase):
     def test_main(self):
         domain_file = os.path.join(test_pddl_files_dir, 'lunch_domain.pddl')
         problem_file = os.path.join(test_pddl_files_dir, 'lunch_pfile1.pddl')
-        waitfor_file = os.path.join(test_pddl_files_dir, 'lunch_pfile1_waitfor.json')
+        waitfor_file = os.path.join(test_pddl_files_dir, 'lunch_pfile1.json')
         main(domain_file, problem_file, waitfor_file)
 
 if __name__ == '__main__':

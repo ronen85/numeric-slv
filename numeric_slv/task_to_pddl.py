@@ -1,6 +1,6 @@
 from translate.pddl import Atom, NegatedAtom, TypedObject, Predicate, Function, Action, Conjunction, conditions, \
     Increase, Decrease, PrimitiveNumericExpression, NumericConstant, FunctionComparison, Assign, ArithmeticExpression, \
-    Effect
+    Effect, Disjunction
 
 
 def as_pddl(obj):
@@ -22,13 +22,15 @@ def as_pddl(obj):
         parameters_typed_objects = ' '.join([f'{as_pddl(p)}' for p in obj.parameters])
         action_str += f':parameters ({parameters_typed_objects})\n'
         action_str += f':precondition {as_pddl(obj.precondition)}\n'
-        action_str += f':effects (and\n'
+        action_str += f':effect (and\n'
         for eff in obj.effects:
             action_str += f'\t{as_pddl(eff)}\n'
         action_str += '))'
         return action_str
     elif isinstance(obj, Conjunction):
         return f'(and\n\t' + '\n\t'.join([as_pddl(p) for p in obj.parts]) + ')'
+    elif isinstance(obj, Disjunction):
+        return f'(or\n\t' + '\n\t'.join([as_pddl(p) for p in obj.parts]) + ')'
     elif isinstance(obj, Effect):
         if obj.condition == conditions.Truth() and obj.parameters == []:
             return as_pddl(obj.peffect)
@@ -43,7 +45,7 @@ def as_pddl(obj):
     elif isinstance(obj, NumericConstant):
         return f'{obj.value}'
     elif isinstance(obj, FunctionComparison):
-        return f'({obj.comparator} ' + as_pddl(obj.parts[0]) + as_pddl(obj.parts[1]) + ')'
+        return f'({obj.comparator} ' + as_pddl(obj.parts[0]) + ' ' + as_pddl(obj.parts[1]) + ')'
     elif isinstance(obj, Assign):
         return f'(= {as_pddl(obj.fluent)} {as_pddl(obj.expression)})'
     elif isinstance(obj, ArithmeticExpression):
@@ -101,7 +103,7 @@ def get_pddl_prob(task):
     """
     gets a task and returns the pddl problem as a string
     """
-    prob = f'(define (problem {task.task_name}) (domain {task.domain_name})\n\n'
+    prob = f'(define (problem {task.task_name}) (:domain {task.domain_name})\n\n'
     prob += '(:objects\n' + '\n\t'.join([as_pddl(o) for o in task.objects]) + ')\n\n'
     prob += '(:init\n'
     for i in task.init:

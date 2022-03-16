@@ -3,6 +3,17 @@ import subprocess
 from pathlib import Path
 from .config import FD_PATH
 
+def solve_pddl(domain_path, problem_path):
+    executable = Path(FD_PATH) / 'src/translate/translate.py'
+    domain_path, problem_path = Path(domain_path), Path(problem_path)
+    # sanity check
+    assert executable.is_file(), f'{executable} should be a file'
+    assert domain_path.is_file(), f'{domain_path} should be a file'
+    assert problem_path.is_file(), f'{problem_path} should be a file'
+    # compiling a command
+    print()
+
+
 def get_sas_translation(domain, problem):
     executable = Path(FD_PATH) / 'src/translate/translate.py'
     domain, problem = Path(domain), Path(problem)

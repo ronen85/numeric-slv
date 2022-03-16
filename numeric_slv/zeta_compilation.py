@@ -79,6 +79,7 @@ def convert_numerical_expressions_to_normal_form(obj):
     if isinstance(obj, Task):
         modified_task = deepcopy(obj)
         modified_task.actions = [convert_numerical_expressions_to_normal_form(a) for a in modified_task.actions]
+        modified_task.goal = convert_numerical_expressions_to_normal_form(modified_task.goal)
         return modified_task
     elif isinstance(obj, Action):
         modified_action = deepcopy(obj)
@@ -264,6 +265,9 @@ def replace_complex_numerical_expressions_with_zeta_variables(obj, zeta_dict_lis
             zeta_assign = Assign(fluent=zeta_fluent, expression=NumericConstant(zeta_initial_value))
             zeta_num_init.append(zeta_assign)
         modified_task.num_init.extend(zeta_num_init)
+        # modify goal
+        modified_task.goal = \
+            replace_complex_numerical_expressions_with_zeta_variables(modified_task.goal, zeta_dict_list, num_init_list)
         return modified_task
     elif isinstance(obj, Action):
         modified_precondition = replace_complex_numerical_expressions_with_zeta_variables(obj.precondition,
