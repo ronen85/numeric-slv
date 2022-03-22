@@ -66,9 +66,13 @@ def replace_pne_with_numeric_constants(obj, constants_dict):
         return modified_eff
     elif isinstance(obj, FunctionAssignment):
         f_assignment = deepcopy(obj)
-        assert isinstance(f_assignment.fluent,
-                          PrimitiveNumericExpression), f'expected a PNE, got: {f_assignment.fluent}'
+        assert isinstance(f_assignment.fluent, PrimitiveNumericExpression), \
+            f'expected a PNE, got: {f_assignment.fluent}'
         f_assignment.expression = replace_pne_with_numeric_constants(f_assignment.expression, constants_dict)
+        if not isinstance(f_assignment.expression, NumericConstant):
+            raise NotImplemented
+        elif f_assignment.expression.value < 0.:
+            raise NotImplemented
         return f_assignment
     elif isinstance(obj, PrimitiveNumericExpression):
         return constants_dict[obj] if obj in constants_dict.keys() else deepcopy(obj)

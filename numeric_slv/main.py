@@ -5,16 +5,23 @@ from pathlib import Path
 import pandas as pd
 from copy import deepcopy
 
+from numeric_slv import benchmarks
+from numeric_slv.ground_task import get_grounded_task_with_sas
 from numeric_slv.problem import get_simplified_grounded_task
+from numeric_slv.remove_constants import get_task_with_grounded_constants
 from numeric_slv.task_to_pddl import get_pddl_domain, get_pddl_prob
-from numeric_slv.zeta_compilation import is_function_comparison_simple
+from numeric_slv.utils import solve_pddl
+from numeric_slv.zeta_compilation import is_function_comparison_simple, convert_numerical_expressions_to_normal_form, \
+    replace_complex_numerical_expressions_with_zeta_variables
 from translate import pddl_parser
 from translate.pddl import Predicate, Atom, Conjunction, NegatedAtom, FunctionComparison, PrimitiveNumericExpression, \
     Action, Literal, Effect, NumericConstant, Function, Assign, Increase, Decrease, Disjunction, Task, Truth, \
     NumericEffect
 
+
 def get_action_cost(cost=1.0):
     return NumericEffect(Increase(PrimitiveNumericExpression('total-cost', tuple()), NumericConstant(cost)))
+
 
 def str_eq(arg1, arg2):
     return arg1 == arg2 or '*' in [arg1, arg2]
@@ -255,18 +262,23 @@ def get_num_eff_from_action(action):
 
 class Compilation:
 
-    def __init__(self, domain_filename, prob_filename, info_file=''):
+    def __init__(self, domain_filename, prob_filename, info_file):
         self.domain_filename, self.prob_filename = domain_filename, prob_filename
         self.task = pddl_parser.open_pddl(domain_filename, prob_filename)
-        self.grounded_task = get_simplified_grounded_task(domain_filename, prob_filename)
-        if info_file:
-            with open(info_file, 'rb') as f:
-                json_file = json.load(f)
-                self.waitfor = json_file.get('waitfor', dict())
-                self.num_waitfor = json_file.get('num_waitfor', dict())
-                self.goal_affiliation = json_file.get('goal_affiliation', [])
+        # ground, replace constants, convert to normal form and do zeta compilation
+        grounded_task_0 = get_grounded_task_with_sas(domain_filename, prob_filename)
+        # grounded_task_0 = get_grounded_task(domain_filename, prob_filename)
+        grounded_task_1 = get_task_with_grounded_constants(grounded_task_0)
+        grounded_task_2 = convert_numerical_expressions_to_normal_form(grounded_task_1)
+        grounded_task_3 = replace_complex_numerical_expressions_with_zeta_variables(grounded_task_2)
+        # social law verification compilation
+        self.grounded_task = grounded_task_3
+        with open(info_file, 'rb') as f:
+            json_file = json.load(f)
+            self.waitfor = json_file.get('waitfor', dict())
+            self.num_waitfor = json_file.get('num_waitfor', dict())
+            self.goal_affiliation = json_file.get('goal_affiliation', [])
         self.sanity_check()
-        self.action_df = self.get_action_df()
         self.compiled_task = self.compile_spp()
 
     def compile_spp(self):
@@ -745,7 +757,7 @@ class Compilation:
                 del_effects = [Effect([], Truth(), get_act_atom().negate())]
                 # Action
                 end_s_list.append(Action(name=f'end_s_{a.name}', parameters=[], num_external_parameters=0,
-                                         precondition=Conjunction(pre_parts), _effects=add_effects+del_effects,
+                                         precondition=Conjunction(pre_parts), _effects=add_effects + del_effects,
                                          cost=get_action_cost()))
             # END_f
             end_fp_list = []
@@ -775,9 +787,8 @@ class Compilation:
                 del_effects = [Effect([], Truth(), get_act_atom().negate())]
                 # Action
                 end_fp_list.append(Action(name=f'end_f_{a.name}', parameters=[], num_external_parameters=0,
-                                          precondition=Conjunction(pre_parts), _effects=add_effects+del_effects,
+                                          precondition=Conjunction(pre_parts), _effects=add_effects + del_effects,
                                           cost=get_action_cost()))
-
 
             # END_w
             end_w_list = []
@@ -792,9 +803,8 @@ class Compilation:
                 del_effects = [Effect([], Truth(), get_act_atom().negate())]
                 # Action
                 end_w_list.append(Action(name=f'end_w_{a.name}', parameters=[], num_external_parameters=0,
-                                         precondition=Conjunction(pre_parts), _effects=add_effects+del_effects,
+                                         precondition=Conjunction(pre_parts), _effects=add_effects + del_effects,
                                          cost=get_action_cost()))
-
 
             return A_s + A_p + A_n + A_wt_p + A_wt_n + A_wt + end_s_list + end_fp_list + end_w_list
 
@@ -813,11 +823,6 @@ class Compilation:
         I_v = get_I_v()
         G = get_G()
         A = get_A()
-
-
-
-
-
         compiled_task = Task(domain_name=task.domain_name + '_compiled',
                              task_name=task.task_name + '_compiled',
                              requirements=task.requirements, types=task.types, objects=task.objects,
@@ -825,10 +830,6 @@ class Compilation:
                              actions=A, axioms=task.axioms, metric=task.metric)
         return compiled_task
 
-        # for waitfor_dict in self.waitfor:
-        #     if waitfor_dict['type'] != 'predicate':
-        #         continue
-        #     Predicate(name='wt_' + , arguments=[])
     def get_agent_goals(self, agent_name):
         if isinstance(self.grounded_task.goal, Conjunction):
             all_goals = self.grounded_task.goal.parts
@@ -841,7 +842,6 @@ class Compilation:
             if goal_affiliation == agent_name:
                 agent_goals.append(goal)
         return agent_goals
-
 
     def sanity_check(self):
         assert 'agent' in [t.name for t in self.task.types], "expected one 'agent' type"
@@ -882,7 +882,7 @@ def task_to_pddl(task, path):
     return domain_pddl, prob_pddl
 
 
-def main(domain_file, problem_file, info_file=''):
+def main(domain_file, problem_file, info_file):
     """
 
     """
@@ -895,14 +895,21 @@ def main(domain_file, problem_file, info_file=''):
         f.write(domain_pddl)
     with open(str(compiled_prob_path), 'w') as f:
         f.write(prob_pddl)
+    output = solve_pddl(compiled_domain_path, compiled_prob_path)
 
     print()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("domain-file", type=str, help="path to domain file")
-    parser.add_argument("problem-file", type=str, help="path to problem file")
-    parser.add_argument("waitfor-file", type=str, help="path to waitfor file")
+    parser.add_argument("domain", type=str, choices=list(benchmarks.domain_dict.keys()))
+    parser.add_argument("problem", type=int, choices=list(range(1, 21)))
     args = parser.parse_args()
-    main(domain_file=args.domain_file, problem_file=args.problem_file, waitfor_file=args.waitfor_file)
+    domain_file = benchmarks.domain_dict[args.domain]
+    problem_file = benchmarks.problem_list_dict[args.domain][args.problem - 1]
+    info_file = benchmarks.json_list_dict[args.domain][args.problem - 1]
+    # sanity check
+    assert domain_file.is_file(), f'domain file is missing: {domain_file}'
+    assert problem_file.is_file(), f'problem file is missing: {problem_file}'
+    assert info_file.is_file(), f'info file is missing: {info_file}'
+    main(domain_file=str(domain_file), problem_file=str(problem_file), info_file=str(info_file))

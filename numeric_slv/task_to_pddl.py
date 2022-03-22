@@ -1,6 +1,6 @@
 from translate.pddl import Atom, NegatedAtom, TypedObject, Predicate, Function, Action, Conjunction, conditions, \
     Increase, Decrease, PrimitiveNumericExpression, NumericConstant, FunctionComparison, Assign, ArithmeticExpression, \
-    Effect, Disjunction
+    Effect, Disjunction, Difference
 
 
 def as_pddl(obj):
@@ -43,13 +43,16 @@ def as_pddl(obj):
     elif isinstance(obj, PrimitiveNumericExpression):
         return f'({obj.symbol} ' + ' '.join(obj.args) + ')'
     elif isinstance(obj, NumericConstant):
-        return f'{obj.value}'
+        if obj.value >= 0.:
+            return f'{obj.value}'
+        else:
+            return as_pddl(Difference([NumericConstant(0.), NumericConstant(-1*obj.value)]))
     elif isinstance(obj, FunctionComparison):
         return f'({obj.comparator} ' + as_pddl(obj.parts[0]) + ' ' + as_pddl(obj.parts[1]) + ')'
     elif isinstance(obj, Assign):
         return f'(= {as_pddl(obj.fluent)} {as_pddl(obj.expression)})'
     elif isinstance(obj, ArithmeticExpression):
-        return f'({obj.op} ' + ' '.join([as_pddl(obj.parts[0]), as_pddl(obj.parts[0])]) + ')'
+        return f'({obj.op} ' + ' '.join([as_pddl(obj.parts[0]), as_pddl(obj.parts[1])]) + ')'
     else:
         raise NotImplemented
 

@@ -103,8 +103,8 @@ def convert_numerical_expressions_to_normal_form(obj):
         return modified_eff
     elif isinstance(obj, FunctionAssignment):
         f_assignment = deepcopy(obj)
-        assert isinstance(f_assignment.fluent,
-                          PrimitiveNumericExpression), f'expected a PNE, got: {f_assignment.fluent}'
+        assert isinstance(f_assignment.fluent, PrimitiveNumericExpression), \
+            f'expected a PNE, got: {f_assignment.fluent}'
         f_assignment.expression = convert_numerical_expressions_to_normal_form(f_assignment.expression)
         return f_assignment
     elif isinstance(obj, NumericConstant):
@@ -365,10 +365,12 @@ def replace_complex_numerical_expressions_with_zeta_variables(obj, zeta_dict_lis
                 k = obj.peffect.expression.value
                 if coeff != 0.:
                     new_fluent = PrimitiveNumericExpression(symbol=zeta_dict['name'], args=tuple())
-                    new_expression = NumericConstant(coeff * k)
-                    new_peffect = Increase(new_fluent, new_expression) if isinstance(obj.peffect,
-                                                                                     Increase) else Decrease(new_fluent,
-                                                                                                             new_expression)
+                    new_expression_value = coeff * k * (1. if isinstance(obj.peffect, Increase) else -1.)
+                    new_expression = NumericConstant(abs(new_expression_value))
+                    if new_expression_value > 0.:
+                        new_peffect = Increase(new_fluent, new_expression)
+                    else:
+                        new_peffect = Decrease(new_fluent, new_expression)
                     zeta_effect = Effect(parameters=[], condition=conditions.Truth(), peffect=new_peffect)
                     zeta_effects.append(zeta_effect)
                 else:

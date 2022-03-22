@@ -38,8 +38,8 @@ def get_numerical_preconditions_from_action(action: Action):
 
 
 def get_simplified_grounded_task(domain_filename, prob_filename):
-    # grounded_task = get_grounded_task_with_sas(domain_filename, prob_filename)
-    grounded_task = get_grounded_task(domain_filename, prob_filename)
+    grounded_task = get_grounded_task_with_sas(domain_filename, prob_filename)
+    # grounded_task = get_grounded_task(domain_filename, prob_filename)
     task_with_grounded_constants = get_task_with_grounded_constants(grounded_task)
     modified_grounded_task = convert_numerical_expressions_to_normal_form(task_with_grounded_constants)
     modified_grounded_task = replace_complex_numerical_expressions_with_zeta_variables(modified_grounded_task)
