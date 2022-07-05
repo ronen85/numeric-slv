@@ -1,6 +1,5 @@
 import os
 import unittest
-
 from .context import numeric_slv
 import numeric_slv.utils as utils
 

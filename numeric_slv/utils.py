@@ -2,11 +2,14 @@ import os
 import re
 import string
 import subprocess
+import uuid
 from subprocess import Popen, PIPE
 from threading import Timer
 import shlex
 from pathlib import Path
 from .config import FD_PATH
+from .task_to_pddl import get_pddl_domain, get_pddl_prob
+
 
 def read_file(file_path):
     if isinstance(file_path, str):
@@ -16,15 +19,21 @@ def read_file(file_path):
         res = f.read()
     return res
 
-def solve_pddl(domain_path, problem_path):
-    executable = Path(FD_PATH) / 'src/translate/translate.py'
-    domain_path, problem_path = Path(domain_path), Path(problem_path)
-    # sanity check
-    assert executable.is_file(), f'{executable} should be a file'
-    assert domain_path.is_file(), f'{domain_path} should be a file'
-    assert problem_path.is_file(), f'{problem_path} should be a file'
-    # compiling a command
-    print()
+
+def write_file(str_to_write, file_path, rewrite=True):
+    assert isinstance(str_to_write, str), f'expected str, got: {str_to_write}'
+    assert isinstance(file_path, str) or isinstance(file_path, Path), f'expected str/Path, got: {file_path}'
+    if isinstance(file_path, str):
+        file_path = Path(file_path)
+    if file_path.is_file():
+        if rewrite:
+            file_path.unlink()
+        else:
+            print("file exists!")
+            return
+    with open(str(file_path.absolute()), 'w') as f:
+        f.write(str_to_write)
+    return
 
 
 def get_sas_translation(domain, problem):
@@ -53,6 +62,28 @@ def replace_punctuation(s, replace=' '):
     return re.sub(r'[' + chars + ']', replace, s)
 
 
+def get_tmp_dir_path():
+    return Path(os.path.abspath(os.path.join(os.path.dirname(__file__), '../tmp')))
+
+
+def solve_task(task, timeout=10.):
+    tmp_dir_path = get_tmp_dir_path()
+    rand_key = str(uuid.uuid4())[:6]
+    domain_file_name = '_'.join([rand_key, task.domain_name + '.pddl'])
+    prob_file_name = '_'.join([rand_key, task.task_name + '.pddl'])
+    domain_file_path = tmp_dir_path / domain_file_name
+    prob_file_path = tmp_dir_path / prob_file_name
+    # write files to path
+    write_file(get_pddl_domain(task), domain_file_path.absolute())
+    write_file(get_pddl_prob(task), prob_file_path.absolute())
+    # solve
+    res = solve_pddl(domain_file_path.absolute(), prob_file_path.absolute(), timeout)
+    # delete files
+    domain_file_path.unlink(missing_ok=True)
+    prob_file_path.unlink(missing_ok=True)
+    return res
+
+
 def solve_pddl(domain, problem, timeout=10.):
     """
     input:
@@ -74,7 +105,7 @@ def solve_pddl(domain, problem, timeout=10.):
     # running planner
     is_timeout = False
     try:
-        subprocess.call(cmd, timeout=5, shell=True)
+        subprocess.call(f'timeout {int(timeout+1)} ' + cmd, timeout=timeout, shell=True, )
     except subprocess.TimeoutExpired:
         is_timeout = True
         print('timeout!')
@@ -86,5 +117,7 @@ def solve_pddl(domain, problem, timeout=10.):
             info['solved'] = True
             assert sas_plan_path.is_file(), f'expected a plan file in {sas_plan_path}'
             sas_plan = read_file(sas_plan_path)
-            info['plan'] = sas_plan
+            plan = [s.strip('()') for s in sas_plan.split('\n')]
+            plan = list(filter(lambda x: bool(x), map(lambda x: x.index(';') if ';' in x else x, plan)))
+            info['plan'] = plan
     return info

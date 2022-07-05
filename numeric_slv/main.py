@@ -79,7 +79,6 @@ def get_pre_n_w_from_action(action, num_waitfor):
             if True in [str_list_eq(fc_str_list, wfd_str) for wfd_str in wfd_str_list]:
                 pre_n_w.append(fc)
         return pre_n_w
-    pass
 
 
 def get_action_precondition_as_list(a: Action):
@@ -265,6 +264,12 @@ class Compilation:
     def __init__(self, domain_filename, prob_filename, info_file):
         self.domain_filename, self.prob_filename = domain_filename, prob_filename
         self.task = pddl_parser.open_pddl(domain_filename, prob_filename)
+        with open(info_file, 'rb') as f:
+            json_file = json.load(f)
+            self.waitfor = json_file.get('waitfor', dict())
+            self.num_waitfor = json_file.get('num_waitfor', dict())
+            self.goal_affiliation = json_file.get('goal_affiliation', [])
+        self.sanity_check_original_task()
         # ground, replace constants, convert to normal form and do zeta compilation
         grounded_task_0 = get_grounded_task_with_sas(domain_filename, prob_filename)
         # grounded_task_0 = get_grounded_task(domain_filename, prob_filename)
@@ -273,13 +278,9 @@ class Compilation:
         grounded_task_3 = replace_complex_numerical_expressions_with_zeta_variables(grounded_task_2)
         # social law verification compilation
         self.grounded_task = grounded_task_3
-        with open(info_file, 'rb') as f:
-            json_file = json.load(f)
-            self.waitfor = json_file.get('waitfor', dict())
-            self.num_waitfor = json_file.get('num_waitfor', dict())
-            self.goal_affiliation = json_file.get('goal_affiliation', [])
-        self.sanity_check()
+        self.sanity_check_grounded_task()
         self.compiled_task = self.compile_spp()
+        self.sanity_check_compiled_task()
 
     def compile_spp(self):
         """
@@ -843,16 +844,22 @@ class Compilation:
                 agent_goals.append(goal)
         return agent_goals
 
-    def sanity_check(self):
-        assert 'agent' in [t.name for t in self.task.types], "expected one 'agent' type"
+    def sanity_check_compiled_task(self):
+        return
+
+    def sanity_check_grounded_task(self):
         for a in self.grounded_task.actions:
             assert a.parameters == [], f"expected grounded action, got a.parameters = {a.parameters}"
-        for a in self.task.actions:
-            assert a.parameters[0].type_name == 'agent', \
-                f"expected first argument in each action to be 'agent', got: {a.parameters[0].type_name}"
         for a in self.grounded_task.actions:
             assert isinstance(a.precondition, Atom) or isinstance(a.precondition, Conjunction), \
                 f"expected actions precondition is either Atom or Conjunction, got: {a.precondition}"
+        return
+
+    def sanity_check_original_task(self):
+        assert 'agent' in [t.name for t in self.task.types], "expected one 'agent' type"
+        for a in self.task.actions:
+            assert a.parameters[0].type_name == 'agent', \
+                f"expected first argument in each action to be 'agent', got: {a.parameters[0].type_name}"
         if isinstance(self.task.goal, Conjunction):
             goal_length = len(self.task.goal.parts)
         elif isinstance(self.task.goal, Atom):
@@ -861,6 +868,9 @@ class Compilation:
             raise NotImplemented
         assert goal_length == len(self.goal_affiliation), \
             f"expected goal affiliation list with length = {goal_length}, got: {self.goal_affiliation}"
+        assert not(any(['_' in a.name for a in self.task.actions])), \
+            f"expected action names without '_', got {[a.name for a in self.task.actions if '_' in a.name]}"
+        return
 
     def get_action_df(self):
         action_name_list = []
@@ -896,7 +906,6 @@ def main(domain_file, problem_file, info_file):
     with open(str(compiled_prob_path), 'w') as f:
         f.write(prob_pddl)
     output = solve_pddl(compiled_domain_path, compiled_prob_path)
-
     print()
 
 
