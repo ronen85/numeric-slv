@@ -261,25 +261,43 @@ def get_num_eff_from_action(action):
 
 class Compilation:
 
-    def __init__(self, domain_filename, prob_filename, info_file):
+    def __init__(self, domain_filename, prob_filename, info_file, logger=None):
+        if logger == None:
+            self.logger = print
+        else:
+            self.logger = logger
         self.domain_filename, self.prob_filename = domain_filename, prob_filename
+        self.logger("parsing...")
         self.task = pddl_parser.open_pddl(domain_filename, prob_filename)
+        self.logger("done.")
         with open(info_file, 'rb') as f:
             json_file = json.load(f)
             self.waitfor = json_file.get('waitfor', dict())
             self.num_waitfor = json_file.get('num_waitfor', dict())
             self.goal_affiliation = json_file.get('goal_affiliation', [])
+        self.logger("begin sanity_check_original_task...")
         self.sanity_check_original_task()
+        self.logger("done.")
         # ground, replace constants, convert to normal form and do zeta compilation
+        self.logger("begin constructing a grounded task...")
         grounded_task_0 = get_grounded_task_with_sas(domain_filename, prob_filename)
+        self.logger("done.")
+        self.logger(f"grounded_task_nr_actions::{len(grounded_task_0.actions)}")
         # grounded_task_0 = get_grounded_task(domain_filename, prob_filename)
+        self.logger("begin replacing constants with numbers...")
         grounded_task_1 = get_task_with_grounded_constants(grounded_task_0)
+        self.logger("done.")
+        self.logger("begin zeta compilation...")
         grounded_task_2 = convert_numerical_expressions_to_normal_form(grounded_task_1)
         grounded_task_3 = replace_complex_numerical_expressions_with_zeta_variables(grounded_task_2)
+        self.logger("done.")
         # social law verification compilation
         self.grounded_task = grounded_task_3
         self.sanity_check_grounded_task()
+        self.logger("compiling...")
         self.compiled_task = self.compile_spp()
+        self.logger("done.")
+        self.logger(f"compiled_task_nr_actions::{len(self.compiled_task.actions)}")
         self.sanity_check_compiled_task()
 
     def compile_spp(self):
