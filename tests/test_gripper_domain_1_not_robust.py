@@ -33,8 +33,6 @@ domain_str = """(define (domain multi-gripper-num)
 		    ;  (increase (cost) 2)
 		     ))
 
-
-
    (:action pick
        :parameters (?r - agent ?b - ball ?x - room ?g - gripper)
        :precondition  (and (at ?b ?x) (at-robby ?r ?x) (free ?g) (mount ?g ?r)
@@ -45,7 +43,6 @@ domain_str = """(define (domain multi-gripper-num)
 		    (increase (current_load ?r) (weight ?b))
 		    ; (increase (cost) 1)
 		    ))
-		    
 
    (:action drop
        :parameters (?r - agent ?b - ball ?x - room ?g - gripper)

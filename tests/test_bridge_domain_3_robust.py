@@ -112,8 +112,9 @@ b1 - bridge
 """
 
 info_str = """{
-  "waitfor": [],
-  "num_waitfor": [],
+  "waitfor": [], 
+  "num_waitfor": [{"action_name": "right-get-on-bridge", "action_args": ["*", "*"], "fluent_name": "weight-capacity", "fluent_args": ["*"]},
+    {"action_name": "left-get-on-bridge", "action_args": ["*", "*"], "fluent_name": "weight-capacity", "fluent_args": ["*"]}],
   "goal_affiliation": ["a1", "a2"]
 }
 """
@@ -141,7 +142,7 @@ class Test(unittest.TestCase):
         # the compilation is solvable
         compiled_task = compilation.compiled_task
         res = solve_task(compiled_task)
-        self.assertTrue(res['solved'] == True)
+        self.assertTrue(res['solved'] == False)
 
 
 if __name__ == '__main__':
