@@ -2,6 +2,7 @@ import os
 import re
 import string
 import subprocess
+import time
 import uuid
 from subprocess import Popen, PIPE
 from threading import Timer
@@ -66,7 +67,7 @@ def get_tmp_dir_path():
     return Path(os.path.abspath(os.path.join(os.path.dirname(__file__), '../tmp')))
 
 
-def solve_task(task, timeout=10.):
+def solve_task(task, timeout=10., logger=None):
     tmp_dir_path = get_tmp_dir_path()
     rand_key = str(uuid.uuid4())[:6]
     domain_file_name = '_'.join([rand_key, task.domain_name + '.pddl'])
@@ -77,19 +78,21 @@ def solve_task(task, timeout=10.):
     write_file(get_pddl_domain(task), domain_file_path.absolute())
     write_file(get_pddl_prob(task), prob_file_path.absolute())
     # solve
-    res = solve_pddl(domain_file_path.absolute(), prob_file_path.absolute(), timeout)
+    res = solve_pddl(domain_file_path.absolute(), prob_file_path.absolute(), timeout, logger=logger)
     # delete files
     domain_file_path.unlink(missing_ok=True)
     prob_file_path.unlink(missing_ok=True)
     return res
 
 
-def solve_pddl(domain, problem, timeout=10.):
+def solve_pddl(domain, problem, timeout=10., logger=None):
     """
     input:
     domain, problem: path to domain and problem pddl files
     return the output of the planner
     """
+    if logger==None:
+        logger = print
     executable = Path(FD_PATH) / 'fast-downward.py'
     domain, problem = Path(domain), Path(problem)
     # sanity check
@@ -104,20 +107,32 @@ def solve_pddl(domain, problem, timeout=10.):
     cmd = f'/usr/bin/python {str(executable)} --build=release64  --plan-file={str(sas_plan_path)} {str(domain)} {str(problem)} --search "astar(blind)" > {str(output_path)}'
     # running planner
     is_timeout = False
+    sol_time = ''
     try:
+        begin = time.time()
         subprocess.call(f'timeout {int(timeout+1)} ' + cmd, timeout=timeout, shell=True, )
+        sol_time = round(time.time() - begin, 3)
+        logger(f"solving_time::{sol_time}")
     except subprocess.TimeoutExpired:
         is_timeout = True
-        print('timeout!')
+        logger(f"solving_time::timeout")
     # parse result
-    info = dict(solved=False, plan=[], reached_timeout=is_timeout)
-    if (not is_timeout) and (output_path.is_file()):
-        output = read_file(output_path)
-        if 'Solution found.' in output:
-            info['solved'] = True
-            assert sas_plan_path.is_file(), f'expected a plan file in {sas_plan_path}'
-            sas_plan = read_file(sas_plan_path)
-            plan = [s.strip('()') for s in sas_plan.split('\n')]
-            plan = list(filter(lambda x: bool(x), map(lambda x: x.index(';') if ';' in x else x, plan)))
-            info['plan'] = plan
+    info = dict(solved=False, plan=[], reached_timeout=is_timeout, sol_time=sol_time)
+    if output_path.is_file():
+        logger(f"output_file::{output_path.name}")
+        if not is_timeout:
+            output = read_file(output_path)
+            if 'Solution found.' in output:
+                info['solved'] = True
+                logger(f"solution_found::True")
+                assert sas_plan_path.is_file(), f'expected a plan file in {sas_plan_path}'
+                sas_plan = read_file(sas_plan_path)
+                plan = [s.strip('()').strip() for s in sas_plan.split('\n')]
+                plan = list(filter(lambda x: bool(x), map(lambda x: x.index(';') if ';' in x else x, plan)))
+                info['plan'] = plan
+                logger(f"plan::{','.join(plan)}")
+            else:
+                logger(f"solution_found::False")
+    else:
+        logger(f"output_file::not_found")
     return info
