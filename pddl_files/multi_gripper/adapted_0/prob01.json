@@ -1,8 +1,0 @@
-{   
-    "_waitfor_comment": "the waitfor is a list of dicts with the following keys: 'action_name'(str), 'action_args'(list(str)), 'predicate_name'(str), 'predicate_args'(list(str))",
-    "_num_waitfor_comment": "the num_waitfor is a list of dicts with the following keys: 'action_name'(str), 'action_args'(list(str)), 'fluent_name'(str), 'fluent_args'(list(str))",
-    "_goal_affiliation_comment": "the goal affiliation is a list of agents' stating which goal belongs to each agent",
-    "waitfor": [],
-    "num_waitfor": [],
-    "goal_affiliation": ["r1", "r1", "r2", "r2"]
-}
