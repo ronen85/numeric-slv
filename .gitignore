@@ -95,3 +95,7 @@ ENV/
 tmp/*
 output
 output.sas
+*compiled*.pddl
+*compiled*.output
+*.plan
+/scripts/test.sh
