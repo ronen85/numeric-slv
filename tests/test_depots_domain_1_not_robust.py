@@ -110,7 +110,7 @@ problem_str = """(define (problem depotprob1818) (:domain depot)
 	)
 )
 
-; (:metric minimize (fuel-cost))
+(:metric minimize (fuel-cost))
 )
 """
 

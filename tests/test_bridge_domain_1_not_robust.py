@@ -26,6 +26,7 @@ domain_str = """(define (domain bridge)
 ; (curr-load ?b - bridge)
 ; (weight-limit ?b - bridge)
 (weight-capacity ?b - bridge)
+(total-cost)
 )
 
 (:action right-get-on-bridge
@@ -40,6 +41,7 @@ domain_str = """(define (domain bridge)
     (not (on-right-bank ?a))
     ; (increase (curr-load ?b) (weight ?a))
     (decrease (weight-capacity ?b) (weight ?a))
+    (increase (total-cost) 1.0)
     )
 )
 
@@ -55,6 +57,7 @@ domain_str = """(define (domain bridge)
     (not (on-left-bank ?a))
     ; (increase (curr-load ?b) (weight ?a))
     (decrease (weight-capacity ?b) (weight ?a))
+    (increase (total-cost) 1.0)
     )
 )
 
@@ -68,6 +71,7 @@ domain_str = """(define (domain bridge)
     (not (on-bridge ?a ?b))
     ; (decrease (curr-load ?b) (weight ?a))
     (increase (weight-capacity ?b) (weight ?a))
+    (increase (total-cost) 1.0)
     )
 )
 
@@ -81,6 +85,7 @@ domain_str = """(define (domain bridge)
     (not (on-bridge ?a ?b))
     ; (decrease (curr-load ?b) (weight ?a))
     (increase (weight-capacity ?b) (weight ?a))
+    (increase (total-cost) 1.0)
     )
 )
 )
@@ -100,6 +105,7 @@ b1 - bridge
 ; (= (weight-limit b1) 100)
 ; (= (curr-load b1) 0)
 (= (weight-capacity b1) 100)
+(= (total-cost) 0.0)
 )
 
 (:goal (and
@@ -107,6 +113,7 @@ b1 - bridge
     (on-left-bank a2)
 ))
 
+(:metric minimize (total-cost ))
 )
 
 """
