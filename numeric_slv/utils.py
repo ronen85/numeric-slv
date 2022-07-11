@@ -8,7 +8,7 @@ from subprocess import Popen, PIPE
 from threading import Timer
 import shlex
 from pathlib import Path
-from .config import FD_PATH
+from .config import FD_PATH, FF_PATH
 from .task_to_pddl import get_pddl_domain, get_pddl_prob
 
 
@@ -84,8 +84,15 @@ def solve_task(task, timeout=10., logger=None):
     prob_file_path.unlink(missing_ok=True)
     return res
 
+def solve_pddl(domain, problem, timeout=10., logger=None, planner='ff'):
+    if planner == 'ff':
+        return solve_pddl_with_ff(domain, problem, timeout, logger)
+    elif planner == 'fd':
+        return solve_pddl_with_fd(domain, problem, timeout, logger)
+    else:
+        raise ValueError(f"expected planner to be 'ff' or 'fd', got {planner}")
 
-def solve_pddl(domain, problem, timeout=10., logger=None):
+def solve_pddl_with_ff(domain, problem, timeout=10., logger=None):
     """
     input:
     domain, problem: path to domain and problem pddl files
@@ -93,6 +100,63 @@ def solve_pddl(domain, problem, timeout=10., logger=None):
     """
     if logger==None:
         logger = print
+    logger(f"solver::metric-FF")
+    executable = Path(FF_PATH) / 'ff'
+    domain, problem = Path(domain), Path(problem)
+    directory = domain.parent
+    # sanity check
+    assert executable.is_file(), f'{executable} should be a file'
+    assert domain.is_file(), f'{domain} should be a file'
+    assert problem.is_file(), f'{problem} should be a file'
+    assert domain.parent == problem.parent, 'both domain and problem should be in the same directory'
+    output_path = problem.parent / problem.name.replace('.pddl', '.output')
+    output_path.unlink(missing_ok=True)
+    # sas_plan_path = problem.parent / problem.name.replace('.pddl', '.sas_plan')
+    # sas_plan_path.unlink(missing_ok=True)
+    # compiling a command
+    cmd = ' '.join([str(executable), '-p', str(directory) + '/', '-o', str(domain.name), '-f', str(problem.name),
+                    f'> {str(output_path)}'])
+    # running planner
+    is_timeout = False
+    sol_time = ''
+    try:
+        begin = time.time()
+        subprocess.call(f'timeout {int(timeout+1)} ' + cmd, timeout=timeout, shell=True, )
+        sol_time = round(time.time() - begin, 3)
+        logger(f"solving_time::{sol_time}")
+    except subprocess.TimeoutExpired:
+        is_timeout = True
+        logger(f"solving_time::timeout")
+    # parse result
+    info = dict(solved=False, plan=[], reached_timeout=is_timeout, sol_time=sol_time)
+    if output_path.is_file():
+        logger(f"output_file::{output_path.name}")
+        if not is_timeout:
+            output = read_file(output_path)
+            if 'ff: found legal plan as follows' in output:
+                info['solved'] = True
+                logger(f"solution_found::True")
+                output = output.split('\n')
+                start_idx = output.index('ff: found legal plan as follows') + 1
+                end_idx = output.index([l for l in output if l.startswith('plan cost')][0])
+                plan = [l.split(':')[-1].strip().lower() for l in output[start_idx:end_idx]]
+                info['plan'] = plan
+                logger(f"plan::{','.join(plan)}")
+            else:
+                logger(f"solution_found::False")
+    else:
+        logger(f"output_file::not_found")
+    return info
+
+def solve_pddl_with_fd(domain, problem, timeout=10., logger=None):
+    """
+    input:
+    domain, problem: path to domain and problem pddl files
+    return the output of the planner
+    """
+    if logger==None:
+        logger = print
+    logger(f"solver::numeric-FD")
     executable = Path(FD_PATH) / 'fast-downward.py'
     domain, problem = Path(domain), Path(problem)
     # sanity check
