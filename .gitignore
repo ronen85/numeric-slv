@@ -99,3 +99,6 @@ output.sas
 *compiled*.output
 *.plan
 /scripts/test.sh
+/pddl_files/*/archive
+*.sas_plan
+tmp*
