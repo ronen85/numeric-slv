@@ -23,8 +23,8 @@ domain_str = """(define (domain multi-gripper-num)
    (:functions 
 	(load_limit ?r - agent) 
 	(current_load ?r - agent) 
-	(weight ?b - ball))
-	; (cost))
+	(weight ?b - ball)
+	(cost))
 
    (:action move
        :parameters (?r - agent ?x - room ?y - room) 
@@ -32,7 +32,7 @@ domain_str = """(define (domain multi-gripper-num)
                           (door ?x ?y))
        :effect (and  (at-robby ?r ?y)
 		     (not (at-robby ?r ?x))
-		    ;  (increase (cost) 2)
+		     (increase (cost) 2)
 		     ))
 
 
@@ -45,7 +45,7 @@ domain_str = """(define (domain multi-gripper-num)
 		    (not (at ?b ?x)) 
 		    (not (free ?g))
 		    (increase (current_load ?r) (weight ?b))
-		    ; (increase (cost) 1)
+		    (increase (cost) 1)
 		    ))
 		    
 
@@ -58,7 +58,7 @@ domain_str = """(define (domain multi-gripper-num)
                     (at ?b ?x) 
                     (not (in-g ?b ?g))
                     (decrease (current_load ?r) (weight ?b))
-                    ; (increase (cost) 1)
+                    (increase (cost) 1)
                     ))
    
    (:action to-tray
@@ -68,7 +68,7 @@ domain_str = """(define (domain multi-gripper-num)
        :effect (and (free ?g)
 		     (not (in-g ?b ?g))
 		     (in-tray ?b ?r)
-		    ;  (increase (cost) 0)
+		    (increase (cost) 0)
 		     ))
 		  
    (:action from-tray
@@ -79,7 +79,7 @@ domain_str = """(define (domain multi-gripper-num)
        :effect (and  (not (free ?g))
 		     (in-g ?b ?g)
 		     (not (in-tray ?b ?r))
-		    ;  (increase (cost) 0)
+		    (increase (cost) 0)
 		     ))
 )
 """
@@ -104,11 +104,12 @@ problem_str = """(define (problem num-gripper-x-1)   (:domain multi-gripper-num)
           (= (current_load r2) 0)
           (= (load_limit r2) 4)
           (belongs ball1 r1)
+          (= (cost) 0)
           )
           
    (:goal (and (at ball1 roomb)))
                
-   ; (:metric minimize (cost))
+   (:metric minimize (cost))
 )
 """
 info_str = """{

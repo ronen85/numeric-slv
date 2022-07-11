@@ -16,7 +16,9 @@ domain_str = """(define (domain tanning)
     (ready ?a - agent)
     (in ?a - agent ?b - bed))
 (:functions 
-(tan_level ?a - agent))
+(tan_level ?a - agent)
+(total-cost)
+)
 ; enter bed
 (:action enter-bed
     :parameters (?a - agent ?b - bed)
@@ -24,13 +26,17 @@ domain_str = """(define (domain tanning)
     :effect (and 
         (not (free ?b))
         (not (ready ?a))
-        (in ?a ?b)))
+        (in ?a ?b)
+        (increase (total-cost) 1)
+        ))
 ; tan
 (:action tan
     :parameters (?a - agent ?b - bed)
     :precondition (and (in ?a ?b))
     :effect (and 
-        (increase (tan_level ?a) 1)))
+        (increase (tan_level ?a) 1)
+        (increase (total-cost) 1)
+        ))
 ; leave bed
 (:action leave-bed
     :parameters (?a - agent ?b - bed)
@@ -38,7 +44,9 @@ domain_str = """(define (domain tanning)
     :effect (and 
         (free ?b)
         (ready ?a)
-        (not (in ?a ?b))))
+        (not (in ?a ?b))
+        (increase (total-cost) 1)
+        ))
 )
 """
 
@@ -51,10 +59,12 @@ bed1 - bed)
     (ready a1)
     (ready a2)
     (= (tan_level a1) 0)
-    (= (tan_level a2) 0))
+    (= (tan_level a2) 0)
+    (= (total-cost) 0))
 (:goal (and
     (>= (tan_level a2) 3)
     (in a1 bed1)))
+(:metric minimize (total-cost))
 )
 """
 
