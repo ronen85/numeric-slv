@@ -708,8 +708,8 @@ def parse_task_pddl(task_pddl, type_dict, predicate_dict):
     #                raise SystemExit("Cannot parse metric expression in %s" % entry[2])
     if metric_expression is None:
         metric_expression = pddl.PrimitiveNumericExpression('total-cost', [], 'I')
-        num_initial.append(parse_assignment(['=', 'total-cost', 0]))
-
+    if not 'total-cost' in [a.fluent.symbol for a in num_initial]:
+        num_initial.append(parse_assignment(['=', 'total-cost', 0]))  # initialize total-cost regardless
     #    print("parsing_functions yields num_initial:", num_initial)
     yield num_initial
     yield parse_condition(goal[1], type_dict, predicate_dict)
