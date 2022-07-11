@@ -577,7 +577,8 @@ def parse_domain_pddl(domain_pddl):
     predicate_dict = dict((pred.name, pred) for pred in the_predicates)
     yield predicate_dict
     total_cost_fluent = pddl.Function("total-cost", [], "number")
-    the_functions.append(total_cost_fluent)
+    if not total_cost_fluent.name in [f.name for f in the_functions]:
+        the_functions.append(total_cost_fluent)
     #    the_functions.append(the_free_functions)
     yield the_functions
 
