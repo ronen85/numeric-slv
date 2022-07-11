@@ -333,15 +333,17 @@ class Compilation:
             for action in grounded_task.actions:
                 pre_p_w = get_pre_p_w_from_action(action, self.waitfor)
                 for atom in pre_p_w:
-                    wt_f_list.append(get_wt_f_predicate(atom))
-            wt_f_list = list(set(wt_f_list))
+                    wt_f_predicate = get_wt_f_predicate(atom)
+                    if wt_f_predicate.name not in [p.name for p in wt_f_list]:
+                        wt_f_list.append(wt_f_predicate)
+            # wt_f_list = list(set(wt_f_list))
             # wt.v.w, i.e., there's an agent that is waiting for v >= w
             wt_v_w_list = []
             for action in grounded_task.actions:
                 pre_n_w = get_pre_n_w_from_action(action, self.num_waitfor)
                 for fc in pre_n_w:
                     wt_v_w_predicate = get_wt_v_w_predicate(fc)
-                    if not wt_v_w_predicate.name in [p.name for p in wt_v_w_list]:
+                    if wt_v_w_predicate.name not in [p.name for p in wt_v_w_list]:
                         wt_v_w_list.append(wt_v_w_predicate)
             # act
             act_predicate = get_act_predicate()
@@ -899,8 +901,9 @@ class Compilation:
             raise NotImplemented
         assert goal_length == len(self.goal_affiliation), \
             f"expected goal affiliation list with length = {goal_length}, got: {self.goal_affiliation}"
-        assert not(any(['_' in a.name for a in self.task.actions])), \
+        assert not (any(['_' in a.name for a in self.task.actions])), \
             f"expected action names without '_', got {[a.name for a in self.task.actions if '_' in a.name]}"
+        # TODO add check duplicate predicates/functions/actions etc.
         return
 
     def get_action_df(self):
