@@ -904,7 +904,7 @@ class Compilation:
                                            action_args=action_args_list))
 
 
-def task_to_pddl(task, path):
+def task_to_pddl(task):
     domain_pddl = get_pddl_domain(task)
     prob_pddl = get_pddl_prob(task)
     return domain_pddl, prob_pddl
