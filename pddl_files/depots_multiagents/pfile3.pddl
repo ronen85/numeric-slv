@@ -57,7 +57,7 @@
 	)
 )
 
-; (:metric minimize (fuel-cost))
+(:metric minimize (fuel-cost))
 )
 
 
