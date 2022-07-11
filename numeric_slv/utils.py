@@ -104,7 +104,8 @@ def solve_pddl(domain, problem, timeout=10., logger=None):
     sas_plan_path = problem.parent / problem.name.replace('.pddl', '.sas_plan')
     sas_plan_path.unlink(missing_ok=True)
     # compiling a command
-    cmd = f'/usr/bin/python {str(executable)} --build=release64  --plan-file={str(sas_plan_path)} {str(domain)} {str(problem)} --search "astar(blind)" > {str(output_path)}'
+    # cmd = f'/usr/bin/python {str(executable)} --build=release64  --plan-file={str(sas_plan_path)} {str(domain)} {str(problem)} --search "astar(blind)" > {str(output_path)}'
+    cmd = f'/usr/bin/python {str(executable)} --build=release64  --plan-file={str(sas_plan_path)} {str(domain)} {str(problem)} --search "astar(lmcutnumeric())" > {str(output_path)}'
     # running planner
     is_timeout = False
     sol_time = ''
