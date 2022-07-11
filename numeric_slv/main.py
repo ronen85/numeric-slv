@@ -132,6 +132,9 @@ def get_local_copy(obj, agent_name: str):
         num_eff = deepcopy(obj)
         num_eff.fluent = get_local_copy(num_eff.fluent, agent_name)
         return num_eff
+    elif isinstance(obj, tuple) and len(obj) == 2 and obj[0] in ['>', '<']:
+        op, sub_obj = obj
+        return tuple([op, get_local_copy(sub_obj, agent_name)])
     else:
         raise NotImplemented
 
@@ -205,7 +208,9 @@ def get_del_from_action(action):
 def get_wt_v_w_predicate(fc: FunctionComparison):
     if isinstance(fc, FunctionComparison):
         v = '_'.join([fc.parts[0].symbol] + list(fc.parts[0].args))
-        w = str(fc.parts[1].value)
+        w = str(int(fc.parts[1].value))  # ugly hack bc ff planner assumes predicates' names does not contain "."
+        if fc.parts[1].value != int(fc.parts[1].value):
+            raise NotImplemented
         return Predicate(name='_'.join(['wt', v, w]), arguments=[])
     else:
         raise NotImplemented
@@ -251,8 +256,8 @@ def get_num_eff_from_action(action):
         if isinstance(eff.peffect, Atom) or isinstance(eff.peffect, NegatedAtom):
             continue
         elif isinstance(eff.peffect, Increase) or isinstance(eff.peffect, Decrease):
-            if eff.peffect.fluent.symbol == 'total-cost':
-                continue
+            # if eff.peffect.fluent.symbol == 'total-cost':
+            #     continue
             num_eff.append(eff)
         else:
             raise NotImplemented
@@ -335,8 +340,9 @@ class Compilation:
             for action in grounded_task.actions:
                 pre_n_w = get_pre_n_w_from_action(action, self.num_waitfor)
                 for fc in pre_n_w:
-                    wt_v_w_list.append(get_wt_v_w_predicate(fc))
-            wt_v_w_list = list(set(wt_v_w_list))
+                    wt_v_w_predicate = get_wt_v_w_predicate(fc)
+                    if not wt_v_w_predicate.name in [p.name for p in wt_v_w_list]:
+                        wt_v_w_list.append(wt_v_w_predicate)
             # act
             act_predicate = get_act_predicate()
             # failure
@@ -354,15 +360,15 @@ class Compilation:
             # v_g
             v_g_list = []
             for v in grounded_task.functions:
-                if v.name == 'total-cost':
-                    continue
+                # if v.name == 'total-cost':
+                #     continue
                 v_g_list.append(get_global_copy(v))
             # v_i
             v_i_list = []
             for a in agents:
                 for v in grounded_task.functions:
-                    if v.name == 'total-cost':
-                        continue
+                    # if v.name == 'total-cost':
+                    #     continue
                     v_i_list.append(get_local_copy(v, a.name))
             V = v_g_list + v_i_list
             return V
@@ -451,7 +457,7 @@ class Compilation:
                     p1 = get_wt_v_w_atom(num_waitfor).negate()
                     # v \smaller w - k
                     comparator = '<'
-                    fc_part_0 = v
+                    fc_part_0 = get_local_copy(v, agent_name)
                     fc_part_1 = NumericConstant(w.value - k.value)
                     p2 = FunctionComparison('<', [fc_part_0, fc_part_1])
                     pre_n.append(Disjunction([p1, p2]))
@@ -640,7 +646,7 @@ class Compilation:
 
         def get_a_wt_n(action, x):
             agent_name = action.name.split('_')[1]
-            x_name = '_'.join([x.parts[0].symbol] + list(x.parts[0].args) + [str(x.parts[1].value)])
+            x_name = '_'.join([x.parts[0].symbol] + list(x.parts[0].args) + [str(int(x.parts[1].value))])
             # pre_p
             pre_p = []
             pre_p.append(get_act_atom())  # act
@@ -827,6 +833,11 @@ class Compilation:
 
             return A_s + A_p + A_n + A_wt_p + A_wt_n + A_wt + end_s_list + end_fp_list + end_w_list
 
+        def get_task_metric():
+            old_metric = task.metric
+            global_metric = get_global_copy(old_metric)
+            return global_metric
+
         task = self.task
         grounded_task = self.grounded_task
         agents = [o for o in task.objects if o.type_name == 'agent']
@@ -842,11 +853,13 @@ class Compilation:
         I_v = get_I_v()
         G = get_G()
         A = get_A()
+        metric = get_task_metric()
         compiled_task = Task(domain_name=task.domain_name + '_compiled',
                              task_name=task.task_name + '_compiled',
                              requirements=task.requirements, types=task.types, objects=task.objects,
                              predicates=F, functions=V, init=I_p, num_init=I_v, goal=G,
-                             actions=A, axioms=task.axioms, metric=task.metric)
+                             actions=A, axioms=task.axioms, metric=metric)
+        # TODO consider adding a special 'compilation-cost' variable as a task metric
         return compiled_task
 
     def get_agent_goals(self, agent_name):
