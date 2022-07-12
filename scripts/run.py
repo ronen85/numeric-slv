@@ -21,7 +21,13 @@ depots_problem_file_names = [f'pfile{x}.pddl' for x in range(1, 21)]
 depots_info_file_names = [f'pfile{x}.json' for x in range(1, 21)]
 depots_exp = Exp(depots_dir, depots_domain_file_name, depots_problem_file_names, depots_info_file_names)
 
-exp_dict = dict(depots=depots_exp)
+gripper_dir = Path(os.path.join(os.path.dirname(__file__), '..', 'pddl_files', 'multi_gripper')).absolute()
+gripper_domain_file_name = 'domain.pddl'
+gripper_problem_file_names = [f'prob0{x}.pddl' for x in range(1, 10)] + [f'prob{x}.pddl' for x in range(10, 21)]
+gripper_info_file_names = [s.replace('.pddl', '.json') for s in gripper_problem_file_names]
+gripper_exp = Exp(gripper_dir, gripper_domain_file_name, gripper_problem_file_names, gripper_info_file_names)
+
+exp_dict = dict(depots=depots_exp, gripper=gripper_exp)
 
 
 def main(domain_name, problem_nr, timeout):

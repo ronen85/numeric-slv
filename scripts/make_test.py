@@ -1,6 +1,6 @@
 from itertools import product
 
-arg1_list = ['depots']
+arg1_list = ['depots', 'gripper']
 arg2_list = list(range(1,21))
 arguments = list(product(arg1_list, arg2_list))
 cmd_list = [f'python run.py {a} {b}\n' for a,b in arguments]
