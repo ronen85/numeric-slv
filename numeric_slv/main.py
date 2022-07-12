@@ -752,11 +752,14 @@ class Compilation:
                     A_n.append(action_n)
 
             # A_wt_p
+            waiting_agents = set()
             A_wt_p = []
             for action in grounded_task.actions:
                 for x in get_pre_p_w_from_action(action, self.waitfor):
                     action_wt_x = get_a_wt_p(action, x)
                     A_wt_p.append(action_wt_x)
+                    agent_name = action.name.split('_')[1]
+                    waiting_agents.add(agent_name)
 
             # A_wt_n
             A_wt_n = []
@@ -764,12 +767,16 @@ class Compilation:
                 for x in get_pre_n_w_from_action(action, self.num_waitfor):
                     action_wt_x = get_a_wt_n(action, x)
                     A_wt_p.append(action_wt_x)
+                    agent_name = action.name.split('_')[1]
+                    waiting_agents.add(agent_name)
 
             # A_wt
             A_wt = []
             for action in grounded_task.actions:
-                action_wt = get_a_wt(action)
-                A_wt.append(action_wt)
+                agent_name = action.name.split('_')[1]
+                if agent_name in waiting_agents:
+                    action_wt = get_a_wt(action)
+                    A_wt.append(action_wt)
 
             # END_s
             end_s_list = []
