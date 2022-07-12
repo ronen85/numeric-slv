@@ -6,7 +6,7 @@
              ball27 ball26 ball25 ball24 ball23 ball22 ball21 ball20 ball19
              ball18 ball17 ball16 ball15 ball14 ball13 ball12 ball11 ball10
              ball9 ball8 ball7 ball6 ball5 ball4 ball3 ball2 ball1 - ball 
-             r1 r2 r3 - robby
+             r1 r2 r3 - agent
              left1 mid1 right1 left2 mid2 right2 left3 mid3 right3 - gripper)
              
    (:init (= (weight ball38) 1)

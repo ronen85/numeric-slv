@@ -3,7 +3,7 @@
    (:objects rooma roomb roomc roomd - room 
              ball14 ball13 ball12 ball11 ball10
              ball9 ball8 ball7 ball6 ball5 ball4 ball3 ball2 ball1 - ball 
-             r1 r2 - robby
+             r1 r2 - agent
              left1 right1 left2 right2 - gripper)
    (:init (= (weight ball14) 2)
           (= (weight ball13) 2)

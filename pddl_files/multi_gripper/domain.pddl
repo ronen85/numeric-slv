@@ -1,22 +1,22 @@
 ;; Unonimized
 (define (domain multi-gripper-num)
-  (:types room ball gripper robby - object)
-   (:predicates (at-robby ?r - robby ?x - room)
+  (:types room ball gripper agent - object)
+   (:predicates (at-robby ?r - agent ?x - room)
 		 (at ?b - ball ?x - room)
 		 (door ?x - room ?y - room)
 		 (free ?g - gripper)
 		 (in-g ?b - ball ?g - gripper)
-		 (in-tray ?b - ball ?r - robby) 
-		 (mount ?g - gripper ?r - robby))
+		 (in-tray ?b - ball ?r - agent) 
+		 (mount ?g - gripper ?r - agent))
 		
    (:functions 
-	(load_limit ?r - robby) 
-	(current_load ?r - robby) 
+	(load_limit ?r - agent) 
+	(current_load ?r - agent) 
 	(weight ?b - ball)
 	(cost))
 
    (:action move
-       :parameters (?r - robby ?x - room ?y - room) 
+       :parameters (?r - agent ?x - room ?y - room) 
        :precondition (and (at-robby ?r ?x)
                           (door ?x ?y))
        :effect (and  (at-robby ?r ?y)
@@ -27,7 +27,7 @@
 
 
    (:action pick
-       :parameters (?r - robby ?b - ball ?x - room ?g - gripper)
+       :parameters (?r - agent ?b - ball ?x - room ?g - gripper)
        :precondition  (and (at ?b ?x) (at-robby ?r ?x) (free ?g) (mount ?g ?r)
                            (<= (+ (current_load ?r) (weight ?b)) (load_limit ?r)))
        :effect (and (in-g ?b ?g)
@@ -39,7 +39,7 @@
 		    
 
    (:action drop
-       :parameters (?r - robby ?b - ball ?x - room ?g - gripper)
+       :parameters (?r - agent ?b - ball ?x - room ?g - gripper)
        :precondition (and (in-g ?b ?g) 
                      (at-robby ?r ?x) 
                      (mount ?g ?r))
@@ -51,7 +51,7 @@
                     ))
    
    (:action to-tray
-       :parameters (?r - robby ?b - ball ?g - gripper) 
+       :parameters (?r - agent ?b - ball ?g - gripper) 
        :precondition (and (in-g ?b ?g)
                           (mount ?g ?r))
        :effect (and (free ?g)
@@ -61,7 +61,7 @@
 		     ))
 		  
    (:action from-tray
-       :parameters (?r - robby ?b - ball ?g - gripper) 
+       :parameters (?r - agent ?b - ball ?g - gripper) 
        :precondition (and  (in-tray ?b ?r)
                            (mount ?g ?r)
                            (free ?g))
