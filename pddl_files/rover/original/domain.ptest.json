@@ -1,0 +1,66 @@
+{
+  "defaultDomain": "domain.pddl",
+  "defaultOptions": "",
+  "cases": [
+    {
+      "problem": "pfile1.pddl"
+    },
+    {
+      "problem": "pfile10.pddl"
+    },
+    {
+      "problem": "pfile11.pddl"
+    },
+    {
+      "problem": "pfile12.pddl"
+    },
+    {
+      "problem": "pfile13.pddl"
+    },
+    {
+      "problem": "pfile14.pddl"
+    },
+    {
+      "problem": "pfile16.pddl"
+    },
+    {
+      "problem": "pfile15.pddl"
+    },
+    {
+      "problem": "pfile17.pddl"
+    },
+    {
+      "problem": "pfile18.pddl"
+    },
+    {
+      "problem": "pfile19.pddl"
+    },
+    {
+      "problem": "pfile2.pddl"
+    },
+    {
+      "problem": "pfile3.pddl"
+    },
+    {
+      "problem": "pfile4.pddl"
+    },
+    {
+      "problem": "pfile20.pddl"
+    },
+    {
+      "problem": "pfile5.pddl"
+    },
+    {
+      "problem": "pfile6.pddl"
+    },
+    {
+      "problem": "pfile7.pddl"
+    },
+    {
+      "problem": "pfile8.pddl"
+    },
+    {
+      "problem": "pfile9.pddl"
+    }
+  ]
+}
