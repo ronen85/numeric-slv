@@ -30,7 +30,7 @@ gripper_exp = Exp(gripper_dir, gripper_domain_file_name, gripper_problem_file_na
 exp_dict = dict(depots=depots_exp, gripper=gripper_exp)
 
 
-def main(domain_name, problem_nr, timeout):
+def main(domain_name, problem_nr, timeout, planner):
 
     def get_logger():
         logger = logging.getLogger(f'exp_{domain_name}_{problem_nr}')
@@ -63,8 +63,9 @@ def main(domain_name, problem_nr, timeout):
     logger.info("done.")
     # solve
     logger.info("solving compiled problem...")
-    res = solve_pddl(compiled_domain_file_path.absolute(), compiled_prob_file_path.absolute(),
-                     timeout, logger=logger.info)
+    res = solve_pddl(compiled_domain_file_path.absolute(),
+                     compiled_prob_file_path.absolute(),
+                     timeout, logger=logger.info, planner=planner)
     logger.info("exp_completed::True")
 
 
@@ -74,5 +75,9 @@ if __name__ == '__main__':
     parser.add_argument("domain_name", type=str, choices=exp_dict.keys())
     parser.add_argument("problem_nr", type=int, choices=list(range(1, 21)))
     parser.add_argument("-timeout", type=int, default=60*30)
+    parser.add_argument("-planner", type=str, default='ff', choices=['fd', 'ff'])
     args = parser.parse_args()
-    main(args.domain_name, args.problem_nr, args.timeout)
+    main(domain_name=args.domain_name,
+         problem_nr=args.problem_nr,
+         timeout=args.timeout,
+         planner=args.planner)
