@@ -1,6 +1,7 @@
 import argparse
 import json
 from pathlib import Path
+from random import shuffle
 
 import pandas as pd
 from copy import deepcopy
@@ -10,7 +11,7 @@ from numeric_slv.ground_task import get_grounded_task_with_sas
 from numeric_slv.problem import get_simplified_grounded_task
 from numeric_slv.remove_constants import get_task_with_grounded_constants
 from numeric_slv.task_to_pddl import get_pddl_domain, get_pddl_prob
-from numeric_slv.utils import solve_pddl
+from numeric_slv.utils import solve_pddl, solve_task
 from numeric_slv.zeta_compilation import is_function_comparison_simple, convert_numerical_expressions_to_normal_form, \
     replace_complex_numerical_expressions_with_zeta_variables
 from translate import pddl_parser
@@ -262,6 +263,55 @@ def get_num_eff_from_action(action):
         else:
             raise NotImplemented
     return num_eff
+
+def get_automatic_goal_affiliation(task):
+    agent_names = [o.name for o in task.objects if o.type_name == 'agent']
+    assert len(agent_names) > 1
+    agent_names.sort()
+    goal_affiliation = []
+    for idx, goal_atom in enumerate(task.goal.parts):
+        aff_agent_name = [name for name in agent_names if name in goal_atom.args]
+        if aff_agent_name:
+            goal_affiliation.append(aff_agent_name[0])
+            continue
+        else:
+            tmp_agent_names = deepcopy(agent_names)
+            shuffle(tmp_agent_names)
+            for aname in tmp_agent_names:
+                # check if aname can achieve goal
+                single_goal_task = deepcopy(task)
+                single_goal_task.goal.parts = (single_goal_task.goal.parts[idx],)
+                single_goal_task = get_single_agent_projection(single_goal_task, [aname], aname)
+                res = solve_task(single_goal_task)
+                if res['solved']:
+                    goal_affiliation.append(aname)
+                    break
+            else:
+                # goal not achievable
+                goal_affiliation.append("UNACHIEVABLE_FOR_SINGLE_AGENT")
+                # raise NotImplemented
+            print(f'{goal_atom} assigned to {goal_affiliation[-1]}')
+    assert len(goal_affiliation) == len(task.goal.parts)
+    return goal_affiliation
+
+def get_single_agent_projection(task, goal_affiliation, agent_name):
+    domain_name = task.domain_name + '_' + agent_name
+    task_name = task.task_name + '_' + agent_name
+    requirements = task.requirements
+    types = task.types
+    objects = [a for a in task.objects if a.type_name == 'agent' and a.name == agent_name] + \
+        [na for na in task.objects if na.type_name != 'agent']
+    object_names = [o.name for o in objects]
+    predicates = task.predicates
+    functions = task.functions
+    init = [i for i in task.init if all(map(lambda x: x in object_names, i.args))]
+    num_init = [i for i in task.num_init if all(map(lambda x: x in object_names, i.fluent.args))]
+    assert len(goal_affiliation) == len(task.goal.parts)
+    goal = deepcopy(task.goal)
+    goal.parts = [gp for a_name, gp in zip(goal_affiliation, task.goal.parts) if a_name == agent_name]
+    actions = task.actions
+    return Task(domain_name, task_name, requirements, types, objects,
+                predicates, functions, init, num_init, goal, actions, task.axioms, task.metric)
 
 
 class Compilation:
