@@ -67,7 +67,7 @@ def get_tmp_dir_path():
     return Path(os.path.abspath(os.path.join(os.path.dirname(__file__), '../tmp')))
 
 
-def solve_task(task, timeout=10., logger=None):
+def solve_task(task, timeout=10., logger=None, planner='ff'):
     tmp_dir_path = get_tmp_dir_path()
     rand_key = str(uuid.uuid4())[:6]
     domain_file_name = '_'.join([rand_key, task.domain_name + '.pddl'])
@@ -78,7 +78,7 @@ def solve_task(task, timeout=10., logger=None):
     write_file(get_pddl_domain(task), domain_file_path.absolute())
     write_file(get_pddl_prob(task), prob_file_path.absolute())
     # solve
-    res = solve_pddl(domain_file_path.absolute(), prob_file_path.absolute(), timeout, logger=logger)
+    res = solve_pddl(domain_file_path.absolute(), prob_file_path.absolute(), timeout, logger=logger, planner=planner)
     # delete files
     domain_file_path.unlink(missing_ok=True)
     prob_file_path.unlink(missing_ok=True)
@@ -133,6 +133,7 @@ def solve_pddl_with_ff(domain, problem, timeout=10., logger=None):
         logger(f"output_file::{output_path.name}")
         if not is_timeout:
             output = read_file(output_path)
+            info['output'] = output
             if 'ff: found legal plan as follows' in output:
                 info['solved'] = True
                 logger(f"solution_found::True")

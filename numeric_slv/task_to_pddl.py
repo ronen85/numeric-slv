@@ -50,7 +50,8 @@ def as_pddl(obj):
     elif isinstance(obj, FunctionComparison):
         return f'({obj.comparator} ' + as_pddl(obj.parts[0]) + ' ' + as_pddl(obj.parts[1]) + ')'
     elif isinstance(obj, Assign):
-        return f'(= {as_pddl(obj.fluent)} {as_pddl(obj.expression)})'
+        assert isinstance(obj.expression, NumericConstant)
+        return f'(= {as_pddl(obj.fluent)} {obj.expression.value})'
     elif isinstance(obj, ArithmeticExpression):
         return f'({obj.op} ' + ' '.join([as_pddl(obj.parts[0]), as_pddl(obj.parts[1])]) + ')'
     else:
