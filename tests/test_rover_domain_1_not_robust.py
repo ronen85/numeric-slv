@@ -1,4 +1,14 @@
-;; Enrico Scala (enricos83@gmail.com) and Miquel Ramirez (miquel.ramirez@gmail.com)
+import os
+import unittest
+from pathlib import Path
+
+from numeric_slv.main import main, Compilation, task_to_pddl
+from numeric_slv.task_to_pddl import get_pddl_domain, get_pddl_prob
+from numeric_slv.utils import solve_pddl, write_file, solve_task
+
+test_pddl_files_dir = os.path.join(os.path.dirname(__file__), 'test_pddl_files')
+
+domain_str = """; Enrico Scala (enricos83@gmail.com) and Miquel Ramirez (miquel.ramirez@gmail.com)
 (define (domain rover)
 ;(:requirements :typing :fluents)
 (:types agent waypoint store camera mode lander objective - object)
@@ -197,3 +207,99 @@
 
 
 )
+"""
+
+problem_str = """(define (problem roverprob3726) (:domain rover)
+(:objects
+	general - lander
+	colour - mode
+	rover0 rover1 - agent
+	rover0store rover1store - store
+	waypoint0 waypoint1 - waypoint
+	camera0 camera1 - camera
+	objective0 - objective
+	)
+(:init
+	(visible waypoint0 waypoint1)
+	(visible waypoint1 waypoint0)
+	(= (recharges) 0)
+	(at-rock-sample waypoint0)
+	(in-sun waypoint0)
+	(at-rock-sample waypoint1)
+	(in-sun waypoint1)
+	(at-lander general waypoint0)
+	(channel-free general)
+	(= (energy rover0) 50)
+	(in rover0 waypoint1)
+	(in rover1 waypoint1)
+	(available rover0)
+	(store-of rover0store rover0)
+	(empty rover0store)
+	(equipped-for-soil-analysis rover0)
+	(equipped-for-rock-analysis rover0)
+	(equipped-for-imaging rover0)
+	(can-traverse rover0 waypoint1 waypoint0)
+	(can-traverse rover0 waypoint0 waypoint1)
+	(= (energy rover1) 50)
+	(available rover1)
+	(store-of rover1store rover1)
+	(empty rover1store)
+	(equipped-for-soil-analysis rover1)
+	(equipped-for-rock-analysis rover1)
+	(equipped-for-imaging rover1)
+	(can-traverse rover1 waypoint0 waypoint1)
+	(can-traverse rover1 waypoint1 waypoint0)
+	(on-board camera0 rover0)
+	(calibration-target camera0 objective0)
+	(on-board camera1 rover1)
+	(calibration-target camera1 objective0)
+	(supports camera1 colour)
+	(visible-from objective0 waypoint0)
+	(visible-from objective0 waypoint1)
+	(= (total-cost) 0.0)
+)
+
+(:goal (and
+(communicated-rock-data waypoint0)
+(in rover1 waypoint0)
+	)
+)
+
+(:metric minimize (total-cost))
+)
+"""
+info_str = """{
+  "waitfor": [],
+  "num_waitfor": [],
+  "goal_affiliation":  ["rover0", "rover1"]
+}"""
+
+domain_path = os.path.join(test_pddl_files_dir, 'tmp_test_rover_domain.pddl')
+problem_path = os.path.join(test_pddl_files_dir, 'tmp_test_rover_pfile1.pddl')
+info_path = os.path.join(test_pddl_files_dir, 'tmp_test_rover_pfile1.json')
+compiled_domain_path = os.path.join(test_pddl_files_dir, 'tmp_test_rover_domain_compiled.pddl')
+compiled_problem_path = os.path.join(test_pddl_files_dir, 'tmp_test_rover_pfile1_compiled.pddl')
+write_file(domain_str, domain_path)
+write_file(problem_str, problem_path)
+write_file(info_str, info_path)
+
+
+class Test(unittest.TestCase):
+
+    # def test_solve_pddl(self):
+    #     # problem is solvable by the planner
+    #     res = solve_pddl(domain_path, problem_path)
+    #     self.assertTrue(res['solved'])
+    #     self.assertTrue(isinstance(res['plan'], list) and len(res['plan']) > 0)
+
+    def test_compilation_works_with_tan_problem_no_social_law(self):
+        # the compilation succeeds
+        compilation = Compilation(domain_path, problem_path, info_path)
+        # the compilation is solvable
+        compiled_task = compilation.compiled_task
+        res = solve_task(compiled_task)
+        self.assertTrue(res['solved'] == True)
+
+
+if __name__ == '__main__':
+    unittest.main()

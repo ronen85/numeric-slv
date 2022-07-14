@@ -1,13 +1,11 @@
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import argparse
 import logging
 import os
 import sys
 from collections import namedtuple
 from pathlib import Path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from numeric_slv.main import Compilation
 from numeric_slv.task_to_pddl import get_pddl_domain, get_pddl_prob
@@ -27,7 +25,13 @@ gripper_problem_file_names = [f'prob0{x}.pddl' for x in range(1, 10)] + [f'prob{
 gripper_info_file_names = [s.replace('.pddl', '.json') for s in gripper_problem_file_names]
 gripper_exp = Exp(gripper_dir, gripper_domain_file_name, gripper_problem_file_names, gripper_info_file_names)
 
-exp_dict = dict(depots=depots_exp, gripper=gripper_exp)
+rover_dir = Path(os.path.join(os.path.dirname(__file__), '..', 'pddl_files', 'rover')).absolute()
+rover_domain_file_name = 'domain.pddl'
+rover_problem_file_names = [f'pfile{x}.pddl' for x in range(2, 21)]
+rover_info_file_names = [s.replace('.pddl', '.json') for s in rover_problem_file_names]
+rover_exp = Exp(rover_dir, rover_domain_file_name, rover_problem_file_names, rover_info_file_names)
+
+exp_dict = dict(depots=depots_exp, gripper=gripper_exp, rover=rover_exp)
 
 
 def main(domain_name, problem_nr, timeout, planner):

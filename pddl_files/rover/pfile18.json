@@ -1,0 +1,15 @@
+{"waitfor": [], "num_waitfor": [],
+  "goal_affiliation": [
+    "rover0",
+    "rover1",
+    "rover2",
+    "rover3",
+    "rover4",
+    "rover5",
+    "rover0",
+    "rover1",
+    "rover2",
+    "rover3",
+    "rover4"
+    ],
+    "info": ["goals_not_achievable_for_single_agent"]}
