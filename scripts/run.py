@@ -3,7 +3,10 @@ import logging
 import os
 import sys
 from collections import namedtuple
+from copy import deepcopy
 from pathlib import Path
+
+from translate.pddl import Atom, NegatedAtom, Function
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -31,7 +34,17 @@ rover_problem_file_names = [f'pfile{x}.pddl' for x in range(2, 21)]
 rover_info_file_names = [s.replace('.pddl', '.json') for s in rover_problem_file_names]
 rover_exp = Exp(rover_dir, rover_domain_file_name, rover_problem_file_names, rover_info_file_names)
 
-exp_dict = dict(depots=depots_exp, gripper=gripper_exp, rover=rover_exp)
+sailing_dir = Path(os.path.join(os.path.dirname(__file__), '..', 'pddl_files', 'sailing')).absolute()
+sailing_domain_file_name = 'domain.pddl'
+sailing_problem_file_names = \
+    ['prob_2_1_1229.pddl', 'prob_2_2_1229.pddl', 'prob_2_3_1229.pddl', 'prob_2_4_1229.pddl', 'prob_2_5_1229.pddl',
+    'prob_3_1_1229.pddl', 'prob_3_2_1229.pddl', 'prob_3_3_1229.pddl', 'prob_3_4_1229.pddl', 'prob_3_5_1229.pddl',
+    'prob_4_1_1229.pddl', 'prob_4_2_1229.pddl', 'prob_4_3_1229.pddl', 'prob_4_4_1229.pddl', 'prob_4_5_1229.pddl',
+    'prob_5_1_1229.pddl', 'prob_5_2_1229.pddl', 'prob_5_3_1229.pddl', 'prob_5_4_1229.pddl', 'prob_5_5_1229.pddl']
+sailing_info_file_names = [s.replace('.pddl', '.json') for s in sailing_problem_file_names]
+sailing_exp = Exp(sailing_dir, sailing_domain_file_name, sailing_problem_file_names, sailing_info_file_names)
+
+exp_dict = dict(depots=depots_exp, gripper=gripper_exp, rover=rover_exp, sailing=sailing_exp)
 
 
 def main(domain_name, problem_nr, timeout, planner):
