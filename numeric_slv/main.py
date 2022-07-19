@@ -18,6 +18,7 @@ from translate import pddl_parser
 from translate.pddl import Predicate, Atom, Conjunction, NegatedAtom, FunctionComparison, PrimitiveNumericExpression, \
     Action, Literal, Effect, NumericConstant, Function, Assign, Increase, Decrease, Disjunction, Task, Truth, \
     NumericEffect
+from translate.pddl.conditions import ConstantCondition
 
 
 def get_action_cost(cost=1.0):
@@ -88,6 +89,8 @@ def get_action_precondition_as_list(a: Action):
         return [a.precondition]
     elif isinstance(a.precondition, Conjunction):
         return a.precondition.parts
+    elif isinstance(a.precondition, ConstantCondition):
+        return []
     else:
         raise NotImplemented
 
@@ -144,7 +147,7 @@ def get_pre_p_from_action(action: Action):
     pre_list = get_action_precondition_as_list(action)
     pre_p_list = []
     for pre in pre_list:
-        if isinstance(pre, Atom):
+        if isinstance(pre, Atom) or isinstance(pre, NegatedAtom):
             pre_p_list.append(pre)
         elif isinstance(pre, FunctionComparison):
             continue
@@ -159,7 +162,7 @@ def get_pre_n_from_action(action):
     for pre in pre_list:
         if isinstance(pre, FunctionComparison):
             pre_n_list.append(pre)
-        elif isinstance(pre, Atom):
+        elif isinstance(pre, Atom) or isinstance(pre, NegatedAtom):
             continue
         else:
             raise NotImplemented
@@ -264,6 +267,7 @@ def get_num_eff_from_action(action):
             raise NotImplemented
     return num_eff
 
+
 def get_automatic_goal_affiliation(task):
     agent_names = [o.name for o in task.objects if o.type_name == 'agent']
     assert len(agent_names) > 1
@@ -294,13 +298,14 @@ def get_automatic_goal_affiliation(task):
     assert len(goal_affiliation) == len(task.goal.parts)
     return goal_affiliation
 
+
 def get_single_agent_projection(task, goal_affiliation, agent_name):
     domain_name = task.domain_name + '_' + agent_name
     task_name = task.task_name + '_' + agent_name
     requirements = task.requirements
     types = task.types
     objects = [a for a in task.objects if a.type_name == 'agent' and a.name == agent_name] + \
-        [na for na in task.objects if na.type_name != 'agent']
+              [na for na in task.objects if na.type_name != 'agent']
     object_names = [o.name for o in objects]
     predicates = task.predicates
     functions = task.functions
@@ -941,7 +946,9 @@ class Compilation:
         for a in self.grounded_task.actions:
             assert a.parameters == [], f"expected grounded action, got a.parameters = {a.parameters}"
         for a in self.grounded_task.actions:
-            assert isinstance(a.precondition, Atom) or isinstance(a.precondition, Conjunction), \
+            assert isinstance(a.precondition, Atom) or \
+                   isinstance(a.precondition, Conjunction) or \
+                   isinstance(a.precondition, ConstantCondition), \
                 f"expected actions precondition is either Atom or Conjunction, got: {a.precondition}"
         return
 

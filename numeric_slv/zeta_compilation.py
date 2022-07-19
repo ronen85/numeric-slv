@@ -5,6 +5,7 @@ import sympy as sym
 from translate.pddl import FunctionComparison, Task, Action, Conjunction, Literal, ArithmeticExpression, \
     PrimitiveNumericExpression, NumericConstant, Effect, FunctionAssignment, Sum, Product, Atom, Function, Assign, \
     conditions, NegatedAtom, Increase, Decrease
+from translate.pddl.conditions import ConstantCondition
 
 
 def arithmetic_expression_to_sym(exp, pne_dict=dict()):
@@ -111,6 +112,8 @@ def convert_numerical_expressions_to_normal_form(obj):
         return deepcopy(obj)
     elif isinstance(obj, PrimitiveNumericExpression):
         return deepcopy(obj)
+    elif isinstance(obj, ConstantCondition):
+        return obj
     else:
         raise NotImplemented
 
@@ -213,7 +216,7 @@ def replace_complex_numerical_expressions_with_zeta_variables(obj, zeta_dict_lis
         for action in task.actions:
             if isinstance(action.precondition, Conjunction):
                 for pre in action.precondition.parts:
-                    if isinstance(pre, Atom):
+                    if isinstance(pre, Atom) or isinstance(pre, NegatedAtom):
                         continue
                     elif isinstance(pre, FunctionComparison):
                         if is_function_comparison_simple(pre):
@@ -229,6 +232,8 @@ def replace_complex_numerical_expressions_with_zeta_variables(obj, zeta_dict_lis
                     else:
                         raise NotImplemented
             elif isinstance(action.precondition, Atom):
+                continue
+            elif isinstance(action.precondition, ConstantCondition):
                 continue
             else:
                 raise NotImplemented
@@ -287,7 +292,7 @@ def replace_complex_numerical_expressions_with_zeta_variables(obj, zeta_dict_lis
         new_conj = deepcopy(obj)
         new_conj.parts = modified_precondition_parts
         return new_conj
-    elif isinstance(obj, Atom):
+    elif isinstance(obj, Atom) or isinstance(obj, NegatedAtom):
         return deepcopy(obj)
     elif isinstance(obj, FunctionComparison):
         if is_function_comparison_simple(obj):
@@ -378,6 +383,7 @@ def replace_complex_numerical_expressions_with_zeta_variables(obj, zeta_dict_lis
             return [original_eff] + zeta_effects
         else:
             raise NotImplemented
-
+    elif isinstance(obj, ConstantCondition):
+        return obj
     else:
         raise NotImplemented

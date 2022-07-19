@@ -1,6 +1,6 @@
 from translate.pddl import Atom, NegatedAtom, TypedObject, Predicate, Function, Action, Conjunction, conditions, \
     Increase, Decrease, PrimitiveNumericExpression, NumericConstant, FunctionComparison, Assign, ArithmeticExpression, \
-    Effect, Disjunction, Difference
+    Effect, Disjunction, Difference, Truth
 
 
 def as_pddl(obj):
@@ -21,7 +21,10 @@ def as_pddl(obj):
         action_str = f'(:action {obj.name}\n'
         parameters_typed_objects = ' '.join([f'{as_pddl(p)}' for p in obj.parameters])
         action_str += f':parameters ({parameters_typed_objects})\n'
-        action_str += f':precondition {as_pddl(obj.precondition)}\n'
+        if obj.precondition == Truth():
+            action_str += f':precondition (and )\n'
+        else:
+            action_str += f':precondition {as_pddl(obj.precondition)}\n'
         action_str += f':effect (and\n'
         for eff in obj.effects:
             action_str += f'\t{as_pddl(eff)}\n'

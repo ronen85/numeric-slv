@@ -4,7 +4,8 @@ from itertools import product
 from numeric_slv import utils
 from translate import pddl_parser
 from translate.pddl import NumericConstant, Effect, FunctionAssignment, PrimitiveNumericExpression, NumericEffect, \
-    Action, Type
+    Action, Type, Truth
+from translate.pddl.conditions import ConstantCondition
 
 
 def ground_obj_with_dict(obj, type_dict):
@@ -34,6 +35,8 @@ def ground_obj_with_dict(obj, type_dict):
         return grounded_obj
     elif isinstance(grounded_obj, NumericEffect):
         grounded_obj.effect = ground_obj_with_dict(grounded_obj.effect, type_dict)
+        return grounded_obj
+    elif isinstance(grounded_obj, ConstantCondition):
         return grounded_obj
     else:
         raise NotImplemented

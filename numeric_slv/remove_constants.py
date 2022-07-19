@@ -2,6 +2,7 @@ from copy import deepcopy
 
 from translate.pddl import FunctionAssignment, Literal, PrimitiveNumericExpression, Task, Action, Conjunction, \
     FunctionComparison, ArithmeticExpression, Effect, NumericConstant
+from translate.pddl.conditions import ConstantCondition
 
 
 def get_constants_from_grounded_task(grounded_task):
@@ -78,6 +79,8 @@ def replace_pne_with_numeric_constants(obj, constants_dict):
         return constants_dict[obj] if obj in constants_dict.keys() else deepcopy(obj)
     elif isinstance(obj, NumericConstant):
         return deepcopy(obj)
+    elif isinstance(obj, ConstantCondition):
+        return obj
     else:
         raise NotImplemented
 
